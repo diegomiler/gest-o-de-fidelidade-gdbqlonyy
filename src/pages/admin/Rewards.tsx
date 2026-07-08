@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -9,9 +10,38 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { mockRewards } from '@/lib/mock-data'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getAllPrizes } from '@/services/prizes'
+import { formatBRL, prizeImage } from '@/lib/format'
 
 export default function AdminRewards() {
+  const [prizes, setPrizes] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const loadData = useCallback(async () => {
+    try {
+      setPrizes(await getAllPrizes())
+    } catch {
+      /* intentionally ignored */
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+  useRealtime('prizes', () => loadData())
+
+  if (loading)
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-16" />
+        <Skeleton className="h-96" />
+      </div>
+    )
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -28,21 +58,40 @@ export default function AdminRewards() {
               <TableRow>
                 <TableHead>Imagem</TableHead>
                 <TableHead>Nome</TableHead>
-                <TableHead>Tipo</TableHead>
+                <TableHead>Descrição</TableHead>
                 <TableHead className="text-right">Custo</TableHead>
                 <TableHead className="text-right">Estoque</TableHead>
+                <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockRewards.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <img src={r.image} alt="" className="h-10 w-10 object-cover rounded" />
+              {prizes.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    Nenhum prêmio encontrado.
                   </TableCell>
-                  <TableCell className="font-medium">{r.title}</TableCell>
-                  <TableCell className="capitalize">{r.type}</TableCell>
-                  <TableCell className="text-right font-medium">R$ {r.cost.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">{r.inventory}</TableCell>
+                </TableRow>
+              )}
+              {prizes.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell>
+                    <img src={prizeImage(p)} alt="" className="h-10 w-10 object-cover rounded" />
+                  </TableCell>
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm max-w-xs truncate">
+                    {p.description || '—'}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {formatBRL(p.required_amount || 0)}
+                  </TableCell>
+                  <TableCell className="text-right">{p.stock || 0}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${p.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      {p.active ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

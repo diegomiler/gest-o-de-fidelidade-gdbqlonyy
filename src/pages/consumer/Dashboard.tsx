@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { Info, ArrowRight, Store, Fuel, ScanLine } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
@@ -15,19 +15,80 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
-import { mockUser, mockTransactions, mockBanners } from '@/lib/mock-data'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getCashbackByUser } from '@/services/cashback'
+import { getPurchases } from '@/services/purchases'
+import { getBanners } from '@/services/banners'
+import { formatBRL, formatDate, bannerImage } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
+
+interface Balance {
+  store: number
+  fuel: number
+  pendingStore: number
+  pendingFuel: number
+}
 
 export default function ConsumerDashboard() {
+  const { user } = useAuth()
+  const [balance, setBalance] = useState<Balance>({
+    store: 0,
+    fuel: 0,
+    pendingStore: 0,
+    pendingFuel: 0,
+  })
+  const [purchases, setPurchases] = useState<any[]>([])
+  const [banners, setBanners] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [purchaseAmount, setPurchaseAmount] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+
+  const loadData = useCallback(async () => {
+    if (!user?.id) return
+    try {
+      const [cashbackRecords, purchaseRecords, bannerRecords] = await Promise.all([
+        getCashbackByUser(user.id),
+        getPurchases(user.id),
+        getBanners(),
+      ])
+      setBalance({
+        store: cashbackRecords
+          .filter((c: any) => c.type === 'loja' && c.status === 'released')
+          .reduce((s: number, c: any) => s + (c.amount_available || 0), 0),
+        fuel: cashbackRecords
+          .filter((c: any) => c.type === 'combustivel' && c.status === 'released')
+          .reduce((s: number, c: any) => s + (c.amount_available || 0), 0),
+        pendingStore: cashbackRecords
+          .filter((c: any) => c.type === 'loja' && c.status === 'pending')
+          .reduce((s: number, c: any) => s + (c.amount_generated || 0), 0),
+        pendingFuel: cashbackRecords
+          .filter((c: any) => c.type === 'combustivel' && c.status === 'pending')
+          .reduce((s: number, c: any) => s + (c.amount_generated || 0), 0),
+      })
+      setPurchases(purchaseRecords.slice(0, 3))
+      setBanners(bannerRecords)
+    } catch {
+      /* intentionally ignored */
+    } finally {
+      setLoading(false)
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+  useRealtime('cashback', () => loadData())
+  useRealtime('purchases', () => loadData())
 
   const handleUseCashback = () => {
     const val = parseFloat(purchaseAmount.replace(',', '.'))
     if (isNaN(val) || val < 100) {
       toast({
         title: 'Valor insuficiente',
-        description: 'A compra deve ser maior que R$ 100,00 para utilizar o saldo de loja.',
+        description: 'A compra deve ser maior que R$ 100,00.',
         variant: 'destructive',
       })
       return
@@ -37,23 +98,28 @@ export default function ConsumerDashboard() {
     setPurchaseAmount('')
   }
 
+  if (loading)
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-32" />
+        <Skeleton className="h-32" />
+        <Skeleton className="h-64" />
+      </div>
+    )
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground border-none shadow-elevation">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium flex items-center justify-between">
-              Saldo em Loja
-              <Info className="h-4 w-4 opacity-70" />
+              Saldo em Loja <Info className="h-4 w-4 opacity-70" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-1">
-              R$ {mockUser.balance.store.toFixed(2).replace('.', ',')}
-            </div>
+            <div className="text-3xl font-bold mb-1">{formatBRL(balance.store)}</div>
             <p className="text-sm opacity-80">
-              + R$ {mockUser.balance.pendingStore.toFixed(2).replace('.', ',')} liberando no próximo
-              mês
+              + {formatBRL(balance.pendingStore)} liberando no próximo mês
             </p>
             <div className="mt-4 flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -69,8 +135,7 @@ export default function ConsumerDashboard() {
                   <DialogHeader>
                     <DialogTitle>Utilizar Cashback de Loja</DialogTitle>
                     <DialogDescription>
-                      Para utilizar seu saldo, o valor total da compra deve ser superior a R$
-                      100,00.
+                      O valor da compra deve ser superior a R$ 100,00.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -93,24 +158,19 @@ export default function ConsumerDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-fuel to-amber-400 text-fuel-foreground border-none shadow-elevation">
+        <Card className="bg-gradient-to-br from-amber-500 to-amber-400 text-white border-none shadow-elevation">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium flex items-center justify-between">
-              Saldo Combustível
-              <Fuel className="h-4 w-4 opacity-70" />
+              Saldo Combustível <Fuel className="h-4 w-4 opacity-70" />
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold mb-1">
-              R$ {mockUser.balance.fuel.toFixed(2).replace('.', ',')}
-            </div>
-            <p className="text-sm opacity-80">
-              + R$ {mockUser.balance.pendingFuel.toFixed(2).replace('.', ',')} pendente
-            </p>
+            <div className="text-3xl font-bold mb-1">{formatBRL(balance.fuel)}</div>
+            <p className="text-sm opacity-80">+ {formatBRL(balance.pendingFuel)} pendente</p>
             <div className="mt-4">
               <Button
                 variant="secondary"
-                className="w-full bg-white text-fuel hover:bg-white/90"
+                className="w-full bg-white text-amber-600 hover:bg-white/90"
                 asChild
               >
                 <Link to="/premios">
@@ -122,27 +182,34 @@ export default function ConsumerDashboard() {
         </Card>
       </div>
 
-      <div className="pt-2">
-        <h3 className="font-semibold text-lg mb-3">Ofertas para você</h3>
-        <Carousel className="w-full" opts={{ loop: true }}>
-          <CarouselContent>
-            {mockBanners.map((banner) => (
-              <CarouselItem key={banner.id} className="md:basis-1/2">
-                <div className="relative aspect-[21/9] rounded-xl overflow-hidden shadow-sm group">
-                  <img
-                    src={banner.image}
-                    alt={banner.title}
-                    className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                    <h4 className="text-white font-medium">{banner.title}</h4>
+      {banners.length > 0 && (
+        <div className="pt-2">
+          <h3 className="font-semibold text-lg mb-3">Ofertas para você</h3>
+          <Carousel className="w-full" opts={{ loop: true }}>
+            <CarouselContent>
+              {banners.map((banner) => (
+                <CarouselItem key={banner.id} className="md:basis-1/2">
+                  <div className="relative aspect-[21/9] rounded-xl overflow-hidden shadow-sm group">
+                    <img
+                      src={bannerImage(banner)}
+                      alt={banner.title}
+                      className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+                      <div>
+                        <h4 className="text-white font-medium">{banner.title}</h4>
+                        {banner.description && (
+                          <p className="text-white/80 text-sm">{banner.description}</p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-        </Carousel>
-      </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </Carousel>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -158,29 +225,32 @@ export default function ConsumerDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockTransactions.slice(0, 3).map((tx) => (
+            {purchases.length === 0 && (
+              <p className="text-muted-foreground text-sm">Nenhuma transação encontrada.</p>
+            )}
+            {purchases.map((tx) => (
               <div
                 key={tx.id}
                 className="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0"
               >
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                    {tx.store.includes('Posto') ? (
+                    {(tx.origin_channel || '').includes('posto') ? (
                       <Fuel className="h-5 w-5" />
                     ) : (
                       <Store className="h-5 w-5" />
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{tx.store}</p>
+                    <p className="text-sm font-medium">{tx.origin_channel || 'Compra'}</p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(tx.date).toLocaleDateString('pt-BR')}
+                      {formatDate(tx.purchase_date || tx.created)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-bold text-emerald-600">
-                    + R$ {(tx.cashbackStore + tx.cashbackFuel).toFixed(2).replace('.', ',')}
+                    {formatBRL(tx.total_amount || 0)}
                   </p>
                   <p className="text-[10px] uppercase font-semibold text-muted-foreground">
                     {tx.status}

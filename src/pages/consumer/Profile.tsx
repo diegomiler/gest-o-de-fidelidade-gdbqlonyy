@@ -1,13 +1,46 @@
-import { User, Mail, Shield } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { User, Mail, Phone, CreditCard, LogOut, Save } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { mockUser } from '@/lib/mock-data'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useAuth } from '@/hooks/use-auth'
+import { getErrorMessage } from '@/lib/pocketbase/errors'
+import { formatDate } from '@/lib/format'
+import { toast } from '@/hooks/use-toast'
+import pb from '@/lib/pocketbase/client'
 
 export default function ConsumerProfile() {
+  const { user, signOut } = useAuth()
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [cpf, setCpf] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '')
+      setPhone(user.phone || '')
+      setCpf(user.cpf || '')
+    }
+  }, [user])
+
+  const handleSave = async () => {
+    if (!user?.id) return
+    setSaving(true)
+    try {
+      await pb.collection('users').update(user.id, { name, phone, cpf })
+      toast({ title: 'Perfil atualizado', description: 'Seus dados foram salvos com sucesso.' })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="space-y-6 max-w-2xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Meu Perfil</h1>
         <p className="text-muted-foreground">Gerencie suas informações pessoais.</p>
@@ -15,32 +48,73 @@ export default function ConsumerProfile() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Dados Pessoais</CardTitle>
-          <CardDescription>Informações básicas da sua conta.</CardDescription>
+          <div className="flex items-center gap-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage
+                src={
+                  user?.avatar
+                    ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${user.id}/${user.avatar}`
+                    : undefined
+                }
+              />
+              <AvatarFallback>
+                <User className="h-8 w-8" />
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <CardTitle>{user?.name || 'Usuário'}</CardTitle>
+              <CardDescription>{user?.email}</CardDescription>
+              {user?.created && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Membro desde {formatDate(user.created)}
+                </p>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nome Completo</Label>
-            <div className="relative">
-              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input defaultValue={mockUser.name} className="pl-9" />
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="name" className="flex items-center gap-2">
+              <User className="h-4 w-4" /> Nome
+            </Label>
+            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
-          <div className="space-y-2">
-            <Label>CPF</Label>
-            <div className="relative">
-              <Shield className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input defaultValue={mockUser.cpf} disabled className="pl-9 bg-slate-50" />
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="email" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" /> E-mail
+            </Label>
+            <Input id="email" value={user?.email || ''} disabled />
           </div>
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input defaultValue="maria@exemplo.com" className="pl-9" />
-            </div>
+          <div className="grid gap-2">
+            <Label htmlFor="phone" className="flex items-center gap-2">
+              <Phone className="h-4 w-4" /> Telefone
+            </Label>
+            <Input
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(00) 00000-0000"
+            />
           </div>
-          <Button className="mt-4">Salvar Alterações</Button>
+          <div className="grid gap-2">
+            <Label htmlFor="cpf" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" /> CPF
+            </Label>
+            <Input
+              id="cpf"
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              placeholder="000.000.000-00"
+            />
+          </div>
+          <div className="flex justify-between pt-4">
+            <Button variant="destructive" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" /> Sair
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" /> {saving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

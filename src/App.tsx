@@ -3,8 +3,11 @@ import { Toaster } from '@/components/ui/toaster'
 import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
+import { AuthProvider } from '@/hooks/use-auth'
+import { ProtectedRoute } from '@/components/ProtectedRoute'
 import Layout from './components/Layout'
 import NotFound from './pages/NotFound'
+import Login from './pages/Login'
 
 import ConsumerDashboard from './pages/consumer/Dashboard'
 import ConsumerStatement from './pages/consumer/Statement'
@@ -22,28 +25,33 @@ import AdminConfig from './pages/admin/Config'
 
 const App = () => (
   <BrowserRouter>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<ConsumerDashboard />} />
-          <Route path="/extrato" element={<ConsumerStatement />} />
-          <Route path="/premios" element={<ConsumerRewards />} />
-          <Route path="/perfil" element={<ConsumerProfile />} />
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<ConsumerDashboard />} />
+              <Route path="/extrato" element={<ConsumerStatement />} />
+              <Route path="/premios" element={<ConsumerRewards />} />
+              <Route path="/perfil" element={<ConsumerProfile />} />
 
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/vendas" element={<AdminSales />} />
-          <Route path="/admin/banners" element={<AdminBanners />} />
-          <Route path="/admin/campanhas" element={<AdminCampaigns />} />
-          <Route path="/admin/premios" element={<AdminRewards />} />
-          <Route path="/admin/clientes" element={<AdminCustomers />} />
-          <Route path="/admin/parceiros" element={<AdminPartners />} />
-          <Route path="/admin/config" element={<AdminConfig />} />
-        </Route>
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </TooltipProvider>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/vendas" element={<AdminSales />} />
+              <Route path="/admin/banners" element={<AdminBanners />} />
+              <Route path="/admin/campanhas" element={<AdminCampaigns />} />
+              <Route path="/admin/premios" element={<AdminRewards />} />
+              <Route path="/admin/clientes" element={<AdminCustomers />} />
+              <Route path="/admin/parceiros" element={<AdminPartners />} />
+              <Route path="/admin/config" element={<AdminConfig />} />
+            </Route>
+          </Route>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </TooltipProvider>
+    </AuthProvider>
   </BrowserRouter>
 )
 

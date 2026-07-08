@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback } from 'react'
 import { TrendingUp, Users, Wallet, Target } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
@@ -11,19 +12,55 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { mockBanners } from '@/lib/mock-data'
-
-const chartData = [
-  { date: '01/07', sales: 4000, cashback: 400 },
-  { date: '02/07', sales: 3000, cashback: 300 },
-  { date: '03/07', sales: 5000, cashback: 500 },
-  { date: '04/07', sales: 2780, cashback: 278 },
-  { date: '05/07', sales: 6890, cashback: 689 },
-  { date: '06/07', sales: 2390, cashback: 239 },
-  { date: '07/07', sales: 3490, cashback: 349 },
-]
+import { Skeleton } from '@/components/ui/skeleton'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getAdminStats, type AdminStats } from '@/services/admin'
+import { getAllBanners } from '@/services/banners'
+import { formatBRL, formatDate, bannerImage } from '@/lib/format'
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [banners, setBanners] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const loadData = useCallback(async () => {
+    try {
+      const [s, b] = await Promise.all([getAdminStats(), getAllBanners()])
+      setStats(s)
+      setBanners(b)
+    } catch {
+      /* intentionally ignored */
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+  useRealtime('purchases', () => loadData())
+  useRealtime('cashback', () => loadData())
+
+  if (loading || !stats) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </div>
+        <Skeleton className="h-80" />
+      </div>
+    )
+  }
+
+  const chartData = stats.chartData.map((d) => ({
+    date: new Date(d.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+    sales: d.sales,
+    cashback: d.cashback,
+  }))
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -31,14 +68,11 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Totais (Mês)</CardTitle>
+            <CardTitle className="text-sm font-medium">Vendas Totais</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 45.231,89</div>
-            <p className="text-xs text-emerald-500 flex items-center mt-1">
-              +20.1% em relação ao mês passado
-            </p>
+            <div className="text-2xl font-bold">{formatBRL(stats.totalSales)}</div>
           </CardContent>
         </Card>
         <Card>
@@ -47,8 +81,13 @@ export default function AdminDashboard() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 4.523,18</div>
-            <p className="text-xs text-muted-foreground mt-1">10% conversão média</p>
+            <div className="text-2xl font-bold">{formatBRL(stats.totalCashback)}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {stats.totalSales > 0
+                ? ((stats.totalCashback / stats.totalSales) * 100).toFixed(1)
+                : 0}
+              % conversão
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -57,8 +96,8 @@ export default function AdminDashboard() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+124</div>
-            <p className="text-xs text-muted-foreground mt-1">Prêmios entregues</p>
+            <div className="text-2xl font-bold">{stats.redemptionCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Prêmios solicitados</p>
           </CardContent>
         </Card>
         <Card>
@@ -67,8 +106,7 @@ export default function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2.350</div>
-            <p className="text-xs text-emerald-500 mt-1">+180 novos este mês</p>
+            <div className="text-2xl font-bold">{stats.userCount}</div>
           </CardContent>
         </Card>
       </div>
@@ -76,7 +114,7 @@ export default function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-7">
         <Card className="md:col-span-4">
           <CardHeader>
-            <CardTitle>Visão de Vendas vs Cashback</CardTitle>
+            <CardTitle>Vendas vs Cashback</CardTitle>
           </CardHeader>
           <CardContent className="pl-0">
             <ChartContainer
@@ -135,21 +173,22 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-6">
-              {[1, 2, 3, 4].map((i) => (
+              {stats.topClients.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
+              )}
+              {stats.topClients.map((c, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <Avatar>
-                      <AvatarImage src={`https://img.usecurling.com/ppl/thumbnail?seed=${i}`} />
-                      <AvatarFallback>C{i}</AvatarFallback>
+                      <AvatarImage src={`https://img.usecurling.com/ppl/thumbnail?seed=${i + 1}`} />
+                      <AvatarFallback>{c.name?.[0] || 'C'}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="text-sm font-medium">Cliente VIP {i}</p>
-                      <p className="text-xs text-muted-foreground">{10 - i} compras este mês</p>
+                      <p className="text-sm font-medium">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">{c.purchases} compras</p>
                     </div>
                   </div>
-                  <div className="text-sm font-bold">
-                    R$ {(1500 / i).toFixed(2).replace('.', ',')}
-                  </div>
+                  <div className="text-sm font-bold">{formatBRL(c.total)}</div>
                 </div>
               ))}
             </div>
@@ -168,22 +207,31 @@ export default function AdminDashboard() {
                 <TableHead>Banner</TableHead>
                 <TableHead>Campanha</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">CTR</TableHead>
+                <TableHead>Período</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockBanners.map((b) => (
+              {banners.map((b) => (
                 <TableRow key={b.id}>
                   <TableCell>
-                    <img src={b.image} alt={b.title} className="w-24 h-8 object-cover rounded" />
+                    <img
+                      src={bannerImage(b)}
+                      alt={b.title}
+                      className="w-24 h-8 object-cover rounded"
+                    />
                   </TableCell>
                   <TableCell className="font-medium">{b.title}</TableCell>
                   <TableCell>
-                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">
-                      Ativo
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${b.active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}
+                    >
+                      {b.active ? 'Ativo' : 'Inativo'}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-bold">{b.ctr}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {b.start_date ? formatDate(b.start_date) : '—'} até{' '}
+                    {b.end_date ? formatDate(b.end_date) : '—'}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
