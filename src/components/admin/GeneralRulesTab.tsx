@@ -254,7 +254,7 @@ export function GeneralRulesTab() {
               )}
               <p className="flex items-center gap-1 text-xs text-muted-foreground">
                 <TrendingUp className="h-3 w-3" />
-                Aplicado sobre o valor abastecido nos postos parceiros
+                Aplicado sobre o valor total de compras na loja, para parceiros
               </p>
             </div>
           </div>
