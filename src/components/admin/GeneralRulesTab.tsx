@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { getCashbackRules, updateCashbackRules, type CashbackRules } from '@/services/settings'
 import { useToast } from '@/hooks/use-toast'
+import { ProgramSummary } from '@/components/admin/ProgramSummary'
 
 const DEFAULT_RULES: CashbackRules = {
   min_purchase_amount: 0,
@@ -20,6 +21,7 @@ export function GeneralRulesTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [summaryRefreshKey, setSummaryRefreshKey] = useState(0)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -100,6 +102,7 @@ export function GeneralRulesTab() {
     setSaving(true)
     try {
       await updateCashbackRules(rules)
+      setSummaryRefreshKey((k) => k + 1)
       toast({
         title: 'Configurações atualizadas com sucesso!',
         description:
@@ -326,41 +329,7 @@ export function GeneralRulesTab() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Resumo do Programa</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-indigo-600" />
-              <span>
-                Loja: <strong>{rules.store_percent}%</strong> por compra
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-amber-600" />
-              <span>
-                Combustível: <strong>{rules.fuel_percent}%</strong> por abastecimento
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-sky-600" />
-              <span>
-                Compra mínima:{' '}
-                <strong>R$ {rules.min_purchase_amount.toFixed(2).replace('.', ',')}</strong>
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-emerald-600" />
-              <span>
-                Uso mínimo:{' '}
-                <strong>R$ {rules.min_redemption_amount.toFixed(2).replace('.', ',')}</strong>
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <ProgramSummary refreshKey={summaryRefreshKey} />
     </div>
   )
 }
