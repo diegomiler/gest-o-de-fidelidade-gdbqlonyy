@@ -1,82 +1,41 @@
-import { Key, Link as LinkIcon, ShieldAlert } from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
+import { Store, Building2, ScrollText } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { GeneralRulesTab } from '@/components/admin/GeneralRulesTab'
+import { PartnerStationsTab } from '@/components/admin/PartnerStationsTab'
+import { SystemLogsTab } from '@/components/admin/SystemLogsTab'
 
 export default function AdminConfig() {
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-5xl">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configurações e Integração</h1>
         <p className="text-muted-foreground">
-          Gerencie chaves de API e webhooks para integração com o PDV.
+          Gerencie regras do programa, postos parceiros e integrações do sistema.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Key className="h-5 w-5" /> Credenciais de API
-          </CardTitle>
-          <CardDescription>
-            Utilize estas chaves para autenticar as requisições de vendas do seu PDV.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>API Key (Produção)</Label>
-            <div className="flex gap-2">
-              <Input type="password" value="sk_live_1234567890abcdef" readOnly />
-              <Button variant="outline">Copiar</Button>
-            </div>
-          </div>
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-md flex items-start gap-3 text-sm">
-            <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
-            <p>
-              Mantenha sua API Key em segredo. Caso suspeite de vazamento, gere uma nova chave
-              imediatamente.
-            </p>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button variant="destructive">Regerar Chave</Button>
-        </CardFooter>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <LinkIcon className="h-5 w-5" /> Webhooks
-          </CardTitle>
-          <CardDescription>
-            Receba notificações de eventos em tempo real no seu sistema.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>URL do Webhook</Label>
-            <Input
-              placeholder="https://seu-sistema.com.br/api/webhooks/cashback"
-              defaultValue="https://pdv-interno.loja.com/webhook"
-            />
-            <p className="text-xs text-muted-foreground">
-              Eventos disparados: `reward_redeemed`, `balance_updated`
-            </p>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline">Testar Conexão</Button>
-          <Button>Salvar</Button>
-        </CardFooter>
-      </Card>
+      <Tabs defaultValue="rules">
+        <TabsList>
+          <TabsTrigger value="rules" className="gap-2">
+            <Store className="h-4 w-4" /> Regras Gerais
+          </TabsTrigger>
+          <TabsTrigger value="partners" className="gap-2">
+            <Building2 className="h-4 w-4" /> Postos Parceiros
+          </TabsTrigger>
+          <TabsTrigger value="logs" className="gap-2">
+            <ScrollText className="h-4 w-4" /> Logs do Sistema
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="rules" className="mt-6">
+          <GeneralRulesTab />
+        </TabsContent>
+        <TabsContent value="partners" className="mt-6">
+          <PartnerStationsTab />
+        </TabsContent>
+        <TabsContent value="logs" className="mt-6">
+          <SystemLogsTab />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
