@@ -21,7 +21,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getCashbackByUser } from '@/services/cashback'
 import { getPurchases } from '@/services/purchases'
 import { getBanners } from '@/services/banners'
-import { getMinPurchaseUsage } from '@/services/settings'
+import { getCashbackRules } from '@/services/settings'
 import { formatBRL, formatDate, bannerImage } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
@@ -55,9 +55,9 @@ export default function ConsumerDashboard() {
         getCashbackByUser(user.id),
         getPurchases(user.id),
         getBanners(),
-        getMinPurchaseUsage(),
+        getCashbackRules(),
       ])
-      setMinPurchaseUsage(usageData.amount)
+      setMinPurchaseUsage(usageData.min_purchase_usage)
       setBalance({
         store: cashbackRecords
           .filter((c: any) => c.type === 'loja' && c.status === 'released')
