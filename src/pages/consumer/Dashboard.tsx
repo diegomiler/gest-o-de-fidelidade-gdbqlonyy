@@ -235,7 +235,6 @@ export default function ConsumerDashboard() {
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{tx.origin_channel || 'Compra'}</p>
                     <p className="text-xs text-muted-foreground">
                       {formatDate(tx.purchase_date || tx.created)}
                     </p>
