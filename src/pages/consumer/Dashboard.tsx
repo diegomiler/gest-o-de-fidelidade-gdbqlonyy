@@ -21,6 +21,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getCashbackByUser } from '@/services/cashback'
 import { getPurchases } from '@/services/purchases'
 import { getBanners } from '@/services/banners'
+import { getMinPurchaseUsage } from '@/services/settings'
 import { formatBRL, formatDate, bannerImage } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
@@ -45,15 +46,18 @@ export default function ConsumerDashboard() {
   const [loading, setLoading] = useState(true)
   const [purchaseAmount, setPurchaseAmount] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [minPurchaseUsage, setMinPurchaseUsage] = useState(0)
 
   const loadData = useCallback(async () => {
     if (!user?.id) return
     try {
-      const [cashbackRecords, purchaseRecords, bannerRecords] = await Promise.all([
+      const [cashbackRecords, purchaseRecords, bannerRecords, usageData] = await Promise.all([
         getCashbackByUser(user.id),
         getPurchases(user.id),
         getBanners(),
+        getMinPurchaseUsage(),
       ])
+      setMinPurchaseUsage(usageData.amount)
       setBalance({
         store: cashbackRecords
           .filter((c: any) => c.type === 'loja' && c.status === 'released')
@@ -85,10 +89,12 @@ export default function ConsumerDashboard() {
 
   const handleUseCashback = () => {
     const val = parseFloat(purchaseAmount.replace(',', '.'))
-    if (isNaN(val) || val < 100) {
+    if (isNaN(val) || val < minPurchaseUsage) {
       toast({
-        title: 'Valor insuficiente',
-        description: 'A compra deve ser maior que R$ 100,00.',
+        title: 'Valor da compra insuficiente',
+        description: `Valor da compra insuficiente para utilizar cashback (Mínimo: R$ ${minPurchaseUsage
+          .toFixed(2)
+          .replace('.', ',')})`,
         variant: 'destructive',
       })
       return
@@ -128,7 +134,11 @@ export default function ConsumerDashboard() {
                   <DialogHeader>
                     <DialogTitle>Utilizar Cashback de Loja</DialogTitle>
                     <DialogDescription>
-                      O valor da compra deve ser superior a R$ 100,00.
+                      {minPurchaseUsage > 0
+                        ? `O valor da compra deve ser igual ou superior a R$ ${minPurchaseUsage
+                            .toFixed(2)
+                            .replace('.', ',')}.`
+                        : 'Insira o valor da compra para aplicar o cashback.'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">

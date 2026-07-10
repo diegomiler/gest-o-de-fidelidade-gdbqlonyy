@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Store, Fuel, Save, TrendingUp, Wallet } from 'lucide-react'
+import { Store, Fuel, Save, TrendingUp, Wallet, ShoppingCart } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { getCashbackRules, updateCashbackRules, type CashbackRules } from '@/services/settings'
+import {
+  getCashbackRules,
+  updateCashbackRules,
+  getMinPurchaseUsage,
+  updateMinPurchaseUsage,
+  type CashbackRules,
+} from '@/services/settings'
 import { useToast } from '@/hooks/use-toast'
 
 const DEFAULT_RULES: CashbackRules = {
@@ -16,6 +22,7 @@ const DEFAULT_RULES: CashbackRules = {
 
 export function GeneralRulesTab() {
   const [rules, setRules] = useState<CashbackRules>(DEFAULT_RULES)
+  const [minPurchaseUsage, setMinPurchaseUsage] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -25,13 +32,18 @@ export function GeneralRulesTab() {
     let active = true
     const load = async () => {
       try {
-        const data = await getCashbackRules()
+        const [rulesData, usageData] = await Promise.all([
+          getCashbackRules(),
+          getMinPurchaseUsage(),
+        ])
         if (active) {
-          setRules(data)
+          setRules(rulesData)
+          setMinPurchaseUsage(usageData.amount)
         }
       } catch {
         if (active) {
           setRules(DEFAULT_RULES)
+          setMinPurchaseUsage(0)
         }
       } finally {
         if (active) setLoading(false)
@@ -81,6 +93,11 @@ export function GeneralRulesTab() {
     } else if (rules.min_redemption_amount <= 0) {
       e.min_redemption_amount = 'O valor deve ser maior que zero.'
     }
+    if (minPurchaseUsage === null || minPurchaseUsage === undefined || isNaN(minPurchaseUsage)) {
+      e.min_purchase_usage = 'Informe um valor válido.'
+    } else if (minPurchaseUsage < 0) {
+      e.min_purchase_usage = 'O valor deve ser maior ou igual a zero.'
+    }
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -89,7 +106,7 @@ export function GeneralRulesTab() {
     if (!validate()) return
     setSaving(true)
     try {
-      await updateCashbackRules(rules)
+      await Promise.all([updateCashbackRules(rules), updateMinPurchaseUsage(minPurchaseUsage)])
       toast({
         title: 'Configurações atualizadas com sucesso!',
         description:
@@ -109,6 +126,11 @@ export function GeneralRulesTab() {
   const update = (field: keyof CashbackRules, value: string) => {
     const num = parseFloat(value)
     setRules((prev) => ({ ...prev, [field]: isNaN(num) ? 0 : num }))
+  }
+
+  const updateUsage = (value: string) => {
+    const num = parseFloat(value)
+    setMinPurchaseUsage(isNaN(num) ? 0 : num)
   }
 
   if (loading) {
@@ -264,6 +286,37 @@ export function GeneralRulesTab() {
             )}
             <p className="text-xs text-muted-foreground">
               Saldo mínimo que o cliente deve ter acumulado para utilizar o cashback em compras.
+            </p>
+          </div>
+
+          <div className="space-y-2 border-t pt-6">
+            <Label htmlFor="min_purchase_usage" className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-sky-600 text-white">
+                <ShoppingCart className="h-4 w-4" />
+              </div>
+              Valor mínimo da compra para uso de cashback
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                R$
+              </span>
+              <Input
+                id="min_purchase_usage"
+                type="number"
+                min={0}
+                step="0.01"
+                className="pl-10"
+                value={minPurchaseUsage}
+                onChange={(e) => updateUsage(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            {errors.min_purchase_usage && (
+              <p className="text-sm text-destructive">{errors.min_purchase_usage}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Define o valor total mínimo que uma compra deve ter para que o cliente possa aplicar
+              seu saldo de cashback como desconto.
             </p>
           </div>
 
