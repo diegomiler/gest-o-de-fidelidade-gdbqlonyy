@@ -1,9 +1,20 @@
-import { useState, useEffect } from 'react'
-import { Store, Fuel, Save, TrendingUp, Wallet, ShoppingCart } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  Store,
+  Fuel,
+  Save,
+  TrendingUp,
+  Wallet,
+  ShoppingCart,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { getCashbackRules, updateCashbackRules, type CashbackRules } from '@/services/settings'
 import { useToast } from '@/hooks/use-toast'
 import { ProgramSummary } from '@/components/admin/ProgramSummary'
@@ -21,74 +32,54 @@ export function GeneralRulesTab() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [summaryRefreshKey, setSummaryRefreshKey] = useState(0)
   const { toast } = useToast()
 
-  useEffect(() => {
-    let active = true
-    const load = async () => {
-      try {
-        const rulesData = await getCashbackRules()
-        if (active) {
-          setRules(rulesData)
-        }
-      } catch {
-        if (active) {
-          setRules(DEFAULT_RULES)
-        }
-      } finally {
-        if (active) setLoading(false)
-      }
-    }
-    load()
-    return () => {
-      active = false
+  const loadRules = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const data = await getCashbackRules()
+      setRules(data)
+    } catch (err) {
+      setLoadError(
+        err instanceof Error
+          ? err.message
+          : 'Não foi possível conectar ao banco de dados para carregar as configurações.',
+      )
+    } finally {
+      setLoading(false)
     }
   }, [])
 
+  useEffect(() => {
+    loadRules()
+  }, [loadRules])
+
   const validate = (): boolean => {
     const e: Record<string, string> = {}
-    if (
-      rules.min_purchase_amount === null ||
-      rules.min_purchase_amount === undefined ||
-      isNaN(rules.min_purchase_amount)
-    ) {
+    if (rules.min_purchase_amount == null || isNaN(rules.min_purchase_amount)) {
       e.min_purchase_amount = 'Informe um valor válido.'
     } else if (rules.min_purchase_amount < 0) {
       e.min_purchase_amount = 'O valor mínimo deve ser maior ou igual a zero.'
     }
-    if (
-      rules.store_percent === null ||
-      rules.store_percent === undefined ||
-      isNaN(rules.store_percent)
-    ) {
+    if (rules.store_percent == null || isNaN(rules.store_percent)) {
       e.store_percent = 'Informe uma porcentagem válida.'
     } else if (rules.store_percent < 0 || rules.store_percent > 100) {
       e.store_percent = 'A porcentagem deve estar entre 0 e 100.'
     }
-    if (
-      rules.fuel_percent === null ||
-      rules.fuel_percent === undefined ||
-      isNaN(rules.fuel_percent)
-    ) {
+    if (rules.fuel_percent == null || isNaN(rules.fuel_percent)) {
       e.fuel_percent = 'Informe uma porcentagem válida.'
     } else if (rules.fuel_percent < 0 || rules.fuel_percent > 100) {
       e.fuel_percent = 'A porcentagem deve estar entre 0 e 100.'
     }
-    if (
-      rules.min_redemption_amount === null ||
-      rules.min_redemption_amount === undefined ||
-      isNaN(rules.min_redemption_amount)
-    ) {
+    if (rules.min_redemption_amount == null || isNaN(rules.min_redemption_amount)) {
       e.min_redemption_amount = 'Informe um valor válido.'
     } else if (rules.min_redemption_amount <= 0) {
       e.min_redemption_amount = 'O valor deve ser maior que zero.'
     }
-    if (
-      rules.min_purchase_usage === null ||
-      rules.min_purchase_usage === undefined ||
-      isNaN(rules.min_purchase_usage)
-    ) {
+    if (rules.min_purchase_usage == null || isNaN(rules.min_purchase_usage)) {
       e.min_purchase_usage = 'Informe um valor válido.'
     } else if (rules.min_purchase_usage < 0) {
       e.min_purchase_usage = 'O valor deve ser maior ou igual a zero.'
@@ -101,17 +92,21 @@ export function GeneralRulesTab() {
     if (!validate()) return
     setSaving(true)
     try {
-      await updateCashbackRules(rules)
+      const confirmed = await updateCashbackRules(rules)
+      setRules(confirmed)
       setSummaryRefreshKey((k) => k + 1)
       toast({
         title: 'Configurações atualizadas com sucesso!',
         description:
-          'As novas regras de cashback foram salvas e serão aplicadas nas próximas compras.',
+          'As novas regras de cashback foram salvas e confirmadas no banco de dados. Serão aplicadas nas próximas compras.',
       })
-    } catch {
+    } catch (err) {
       toast({
         title: 'Erro ao salvar',
-        description: 'Não foi possível atualizar as configurações. Tente novamente.',
+        description:
+          err instanceof Error
+            ? err.message
+            : 'Não foi possível atualizar as configurações. Tente novamente.',
         variant: 'destructive',
       })
     } finally {
@@ -132,10 +127,38 @@ export function GeneralRulesTab() {
           <p className="text-sm text-muted-foreground">Carregando configurações...</p>
         </div>
         <Card>
-          <CardContent className="py-10">
-            <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+          <CardContent className="py-10 space-y-4">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-10 w-full" />
+            <div className="grid gap-4 md:grid-cols-2">
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </div>
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold">Regras de Cashback</h2>
+          <p className="text-sm text-muted-foreground">
+            Não foi possível carregar os dados do banco de dados.
+          </p>
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between gap-4">
+            <span>{loadError}</span>
+            <Button variant="outline" size="sm" onClick={loadRules} className="shrink-0">
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Tentar novamente
+            </Button>
+          </AlertDescription>
+        </Alert>
       </div>
     )
   }

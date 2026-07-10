@@ -8,6 +8,16 @@ export interface CashbackRules {
   min_purchase_usage: number
 }
 
+const RULES_KEY = 'cashback_rules'
+
+const RULE_FIELDS: (keyof CashbackRules)[] = [
+  'min_purchase_amount',
+  'store_percent',
+  'fuel_percent',
+  'min_redemption_amount',
+  'min_purchase_usage',
+]
+
 const DEFAULT_RULES: CashbackRules = {
   min_purchase_amount: 0,
   store_percent: 10,
@@ -16,28 +26,37 @@ const DEFAULT_RULES: CashbackRules = {
   min_purchase_usage: 0,
 }
 
-export const getCashbackRules = async (): Promise<CashbackRules> => {
-  try {
-    const record = await pb.collection('settings').getFirstListItem('key = "cashback_rules"')
-    const value = record.get('value')
-    const parsed = typeof value === 'string' ? JSON.parse(value) : value
-    return {
-      min_purchase_amount: parsed.min_purchase_amount ?? DEFAULT_RULES.min_purchase_amount,
-      store_percent: parsed.store_percent ?? DEFAULT_RULES.store_percent,
-      fuel_percent: parsed.fuel_percent ?? DEFAULT_RULES.fuel_percent,
-      min_redemption_amount: parsed.min_redemption_amount ?? DEFAULT_RULES.min_redemption_amount,
-      min_purchase_usage: parsed.min_purchase_usage ?? DEFAULT_RULES.min_purchase_usage,
-    }
-  } catch {
-    return DEFAULT_RULES
+function normalizeRules(raw: unknown): CashbackRules {
+  let parsed = raw
+  if (typeof raw === 'string') {
+    parsed = JSON.parse(raw)
   }
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Formato de dados inválido para cashback_rules.')
+  }
+  const obj = parsed as Record<string, unknown>
+  const result = { ...DEFAULT_RULES }
+  for (const field of RULE_FIELDS) {
+    const val = obj[field]
+    if (typeof val === 'number' && !isNaN(val)) {
+      result[field] = val
+    }
+  }
+  return result
 }
 
-export const updateCashbackRules = async (rules: CashbackRules): Promise<void> => {
+export const getCashbackRules = async (): Promise<CashbackRules> => {
+  const record = await pb.collection('settings').getFirstListItem(`key = "${RULES_KEY}"`)
+  return normalizeRules(record.get('value'))
+}
+
+export const updateCashbackRules = async (rules: CashbackRules): Promise<CashbackRules> => {
+  const payload: CashbackRules = { ...rules }
   try {
-    const record = await pb.collection('settings').getFirstListItem('key = "cashback_rules"')
-    await pb.collection('settings').update(record.id, { value: rules })
+    const record = await pb.collection('settings').getFirstListItem(`key = "${RULES_KEY}"`)
+    await pb.collection('settings').update(record.id, { value: payload })
   } catch {
-    await pb.collection('settings').create({ key: 'cashback_rules', value: rules })
+    await pb.collection('settings').create({ key: RULES_KEY, value: payload })
   }
+  return getCashbackRules()
 }
