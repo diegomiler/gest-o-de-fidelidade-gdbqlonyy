@@ -141,7 +141,6 @@ export default function ConsumerStatement() {
                     )}
                   </div>
                   <div>
-                    <h3 className="font-semibold">{tx.store}</h3>
                     <p className="text-sm text-muted-foreground">
                       Compra: {formatBRL(tx.value)} • {formatDate(tx.date)}
                     </p>
