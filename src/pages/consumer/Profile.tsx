@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react'
-import { User, Mail, Phone, CreditCard, LogOut, Save } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { User, Mail, Phone, CreditCard, LogOut, Save, Camera, Loader2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
+import { useRealtime } from '@/hooks/use-realtime'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatDate } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
 import pb from '@/lib/pocketbase/client'
+
+const PB_URL = import.meta.env.VITE_POCKETBASE_URL
 
 export default function ConsumerProfile() {
   const { user, signOut } = useAuth()
@@ -17,6 +21,9 @@ export default function ConsumerProfile() {
   const [phone, setPhone] = useState('')
   const [cpf, setCpf] = useState('')
   const [saving, setSaving] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState('')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (user) {
@@ -26,11 +33,54 @@ export default function ConsumerProfile() {
     }
   }, [user])
 
+  useRealtime('users', async () => {
+    try {
+      await pb.collection('users').authRefresh()
+    } catch {
+      /* intentionally ignored */
+    }
+  })
+
+  const currentAvatarUrl = user?.avatar
+    ? `${PB_URL}/api/files/users/${user.id}/${user.avatar}`
+    : undefined
+
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user?.id) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande', description: 'Máximo 5MB.', variant: 'destructive' })
+      return
+    }
+
+    setAvatarPreview(URL.createObjectURL(file))
+    setUploadingAvatar(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      await pb.collection('users').update(user.id, formData)
+      await pb.collection('users').authRefresh()
+      toast({
+        title: 'Foto atualizada',
+        description: 'Sua foto de perfil foi atualizada com sucesso.',
+      })
+    } catch (err) {
+      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+    } finally {
+      setAvatarPreview('')
+      setUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const handleSave = async () => {
     if (!user?.id) return
     setSaving(true)
     try {
       await pb.collection('users').update(user.id, { name, phone, cpf })
+      await pb.collection('users').authRefresh()
       toast({ title: 'Perfil atualizado', description: 'Seus dados foram salvos com sucesso.' })
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
@@ -49,18 +99,37 @@ export default function ConsumerProfile() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage
-                src={
-                  user?.avatar
-                    ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${user.id}/${user.avatar}`
-                    : undefined
-                }
+            <div className="relative group">
+              {uploadingAvatar ? (
+                <Skeleton className="h-16 w-16 rounded-full" />
+              ) : (
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={avatarPreview || currentAvatarUrl} />
+                  <AvatarFallback>
+                    <User className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity disabled:cursor-not-allowed"
+                aria-label="Alterar foto"
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                ) : (
+                  <Camera className="h-6 w-6 text-white" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarSelect}
               />
-              <AvatarFallback>
-                <User className="h-8 w-8" />
-              </AvatarFallback>
-            </Avatar>
+            </div>
             <div>
               <CardTitle>{user?.name || 'Usuário'}</CardTitle>
               <CardDescription>{user?.email}</CardDescription>
