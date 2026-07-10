@@ -2,11 +2,33 @@ onRecordAfterCreateSuccess((e) => {
   var purchase = e.record
   var totalAmount = purchase.get('total_amount') || 0
 
-  var hundreds = Math.floor(totalAmount / 100)
-  if (hundreds <= 0) return e.next()
+  var storePercent = 10
+  var fuelPercent = 2
+  var minPurchaseAmount = 0
 
-  var storeCashback = hundreds * 10
-  var fuelCashback = hundreds * 2
+  try {
+    var setting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
+    var rawValue = setting.get('value')
+    var config = rawValue
+    if (typeof config === 'string') {
+      config = JSON.parse(config)
+    }
+    if (config) {
+      if (typeof config.store_percent === 'number') storePercent = config.store_percent
+      if (typeof config.fuel_percent === 'number') fuelPercent = config.fuel_percent
+      if (typeof config.min_purchase_amount === 'number')
+        minPurchaseAmount = config.min_purchase_amount
+    }
+  } catch (err) {
+    $app.logger().warn('cashback rules not found, using defaults', 'error', err.message)
+  }
+
+  if (totalAmount < minPurchaseAmount) return e.next()
+
+  var storeCashback = totalAmount * (storePercent / 100)
+  var fuelCashback = totalAmount * (fuelPercent / 100)
+
+  if (storeCashback <= 0 && fuelCashback <= 0) return e.next()
 
   var dateStr = purchase.getString('purchase_date') || purchase.getString('created') || ''
   var purchaseDate = new Date(dateStr)
@@ -20,27 +42,31 @@ onRecordAfterCreateSuccess((e) => {
   try {
     var cashbackCol = $app.findCollectionByNameOrId('cashback')
 
-    var storeRecord = new Record(cashbackCol)
-    storeRecord.set('client', clientId)
-    storeRecord.set('purchase', purchase.id)
-    storeRecord.set('type', 'loja')
-    storeRecord.set('amount_generated', storeCashback)
-    storeRecord.set('amount_available', storeCashback)
-    storeRecord.set('amount_used', 0)
-    storeRecord.set('status', 'pending')
-    storeRecord.set('released_at', releasedAt.toISOString())
-    $app.save(storeRecord)
+    if (storeCashback > 0) {
+      var storeRecord = new Record(cashbackCol)
+      storeRecord.set('client', clientId)
+      storeRecord.set('purchase', purchase.id)
+      storeRecord.set('type', 'loja')
+      storeRecord.set('amount_generated', storeCashback)
+      storeRecord.set('amount_available', storeCashback)
+      storeRecord.set('amount_used', 0)
+      storeRecord.set('status', 'pending')
+      storeRecord.set('released_at', releasedAt.toISOString())
+      $app.save(storeRecord)
+    }
 
-    var fuelRecord = new Record(cashbackCol)
-    fuelRecord.set('client', clientId)
-    fuelRecord.set('purchase', purchase.id)
-    fuelRecord.set('type', 'combustivel')
-    fuelRecord.set('amount_generated', fuelCashback)
-    fuelRecord.set('amount_available', fuelCashback)
-    fuelRecord.set('amount_used', 0)
-    fuelRecord.set('status', 'pending')
-    fuelRecord.set('released_at', releasedAt.toISOString())
-    $app.save(fuelRecord)
+    if (fuelCashback > 0) {
+      var fuelRecord = new Record(cashbackCol)
+      fuelRecord.set('client', clientId)
+      fuelRecord.set('purchase', purchase.id)
+      fuelRecord.set('type', 'combustivel')
+      fuelRecord.set('amount_generated', fuelCashback)
+      fuelRecord.set('amount_available', fuelCashback)
+      fuelRecord.set('amount_used', 0)
+      fuelRecord.set('status', 'pending')
+      fuelRecord.set('released_at', releasedAt.toISOString())
+      $app.save(fuelRecord)
+    }
   } catch (err) {
     $app
       .logger()

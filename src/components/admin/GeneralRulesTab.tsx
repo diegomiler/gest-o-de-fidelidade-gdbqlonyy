@@ -1,99 +1,258 @@
-import { Store, Fuel, TrendingUp } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Store, Fuel, Save, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { getCashbackRules, updateCashbackRules, type CashbackRules } from '@/services/settings'
+import { useToast } from '@/hooks/use-toast'
 
 export function GeneralRulesTab() {
+  const [rules, setRules] = useState<CashbackRules>({
+    min_purchase_amount: 0,
+    store_percent: 0,
+    fuel_percent: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState<Record<string, string>>({})
+  const { toast } = useToast()
+
+  useEffect(() => {
+    const load = async () => {
+      const data = await getCashbackRules()
+      setRules(data)
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const validate = (): boolean => {
+    const e: Record<string, string> = {}
+    if (
+      rules.min_purchase_amount === null ||
+      rules.min_purchase_amount === undefined ||
+      isNaN(rules.min_purchase_amount)
+    ) {
+      e.min_purchase_amount = 'Informe um valor válido.'
+    } else if (rules.min_purchase_amount < 0) {
+      e.min_purchase_amount = 'O valor mínimo deve ser maior ou igual a zero.'
+    }
+    if (
+      rules.store_percent === null ||
+      rules.store_percent === undefined ||
+      isNaN(rules.store_percent)
+    ) {
+      e.store_percent = 'Informe uma porcentagem válida.'
+    } else if (rules.store_percent < 0 || rules.store_percent > 100) {
+      e.store_percent = 'A porcentagem deve estar entre 0 e 100.'
+    }
+    if (
+      rules.fuel_percent === null ||
+      rules.fuel_percent === undefined ||
+      isNaN(rules.fuel_percent)
+    ) {
+      e.fuel_percent = 'Informe uma porcentagem válida.'
+    } else if (rules.fuel_percent < 0 || rules.fuel_percent > 100) {
+      e.fuel_percent = 'A porcentagem deve estar entre 0 e 100.'
+    }
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  const handleSave = async () => {
+    if (!validate()) return
+    setSaving(true)
+    try {
+      await updateCashbackRules(rules)
+      toast({
+        title: 'Configurações atualizadas com sucesso!',
+        description:
+          'As novas regras de cashback foram salvas e serão aplicadas nas próximas compras.',
+      })
+    } catch {
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível atualizar as configurações. Tente novamente.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const update = (field: keyof CashbackRules, value: string) => {
+    const num = parseFloat(value)
+    setRules((prev) => ({ ...prev, [field]: isNaN(num) ? 0 : num }))
+  }
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold">Regras de Cashback</h2>
+          <p className="text-sm text-muted-foreground">Carregando configurações...</p>
+        </div>
+        <Card>
+          <CardContent className="py-10">
+            <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Regras de Cashback</h2>
         <p className="text-sm text-muted-foreground">
-          Configurações atuais do programa de fidelidade. Os valores são aplicados automaticamente
-          sobre cada compra.
+          Configure os percentuais e limites do programa de fidelidade. As alterações são aplicadas
+          automaticamente sobre as novas transações.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="border-indigo-200 bg-indigo-50/50">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-600 text-white">
-                <Store className="h-5 w-5" />
-              </div>
-              <div>
-                <CardTitle className="text-indigo-900">Cashback Loja</CardTitle>
-                <CardDescription className="text-indigo-700">
-                  Compras de mercearia e produtos
-                </CardDescription>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Configuração de Cashback</CardTitle>
+          <CardDescription>
+            Defina os percentuais de cashback por categoria e o valor mínimo de compra para geração
+            de benefícios.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="min_purchase">Limite Mínimo de Compra</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                R$
+              </span>
+              <Input
+                id="min_purchase"
+                type="number"
+                min={0}
+                step="0.01"
+                className="pl-10"
+                value={rules.min_purchase_amount}
+                onChange={(e) => update('min_purchase_amount', e.target.value)}
+                placeholder="0,00"
+              />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-indigo-700">10%</span>
-              <span className="text-sm text-indigo-600">de cashback</span>
-            </div>
-            <div className="rounded-lg bg-white border border-indigo-200 p-3 text-sm">
-              <p className="text-indigo-900">
-                <span className="font-semibold">R$ 10,00</span> de cashback a cada{' '}
-                <span className="font-semibold">R$ 100,00</span> em compras
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-indigo-600">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>Aplicado sobre o valor total da compra na loja</span>
-            </div>
-          </CardContent>
-        </Card>
+            {errors.min_purchase_amount && (
+              <p className="text-sm text-destructive">{errors.min_purchase_amount}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Compras abaixo deste valor não gerarão cashback.
+            </p>
+          </div>
 
-        <Card className="border-amber-200 bg-amber-50/50">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-600 text-white">
-                <Fuel className="h-5 w-5" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="store_percent" className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600 text-white">
+                  <Store className="h-4 w-4" />
+                </div>
+                Porcentagem Loja
+              </Label>
+              <div className="relative">
+                <Input
+                  id="store_percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.1"
+                  className="pr-8"
+                  value={rules.store_percent}
+                  onChange={(e) => update('store_percent', e.target.value)}
+                  placeholder="10"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                  %
+                </span>
               </div>
-              <div>
-                <CardTitle className="text-amber-900">Cashback Combustível</CardTitle>
-                <CardDescription className="text-amber-700">
-                  Abastecimento de veículos
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-amber-700">2%</span>
-              <span className="text-sm text-amber-600">de cashback</span>
-            </div>
-            <div className="rounded-lg bg-white border border-amber-200 p-3 text-sm">
-              <p className="text-amber-900">
-                <span className="font-semibold">R$ 2,00</span> de cashback a cada{' '}
-                <span className="font-semibold">R$ 100,00</span> em combustível
+              {errors.store_percent && (
+                <p className="text-sm text-destructive">{errors.store_percent}</p>
+              )}
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3" />
+                Aplicado sobre o valor total de compras na loja
               </p>
             </div>
-            <div className="flex items-center gap-2 text-xs text-amber-600">
-              <TrendingUp className="h-3.5 w-3.5" />
-              <span>Aplicado sobre o valor abastecido nos postos parceiros</span>
+
+            <div className="space-y-2">
+              <Label htmlFor="fuel_percent" className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-600 text-white">
+                  <Fuel className="h-4 w-4" />
+                </div>
+                Porcentagem Posto/Combustível
+              </Label>
+              <div className="relative">
+                <Input
+                  id="fuel_percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.1"
+                  className="pr-8"
+                  value={rules.fuel_percent}
+                  onChange={(e) => update('fuel_percent', e.target.value)}
+                  placeholder="2"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                  %
+                </span>
+              </div>
+              {errors.fuel_percent && (
+                <p className="text-sm text-destructive">{errors.fuel_percent}</p>
+              )}
+              <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                <TrendingUp className="h-3 w-3" />
+                Aplicado sobre o valor abastecido nos postos parceiros
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar Configurações
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
           <CardTitle>Resumo do Programa</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-indigo-600" />
               <span>
-                Loja: <strong>10%</strong> por compra
+                Loja: <strong>{rules.store_percent}%</strong> por compra
               </span>
             </div>
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-600" />
               <span>
-                Combustível: <strong>2%</strong> por abastecimento
+                Combustível: <strong>{rules.fuel_percent}%</strong> por abastecimento
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-emerald-600" />
+              <span>
+                Compra mínima:{' '}
+                <strong>R$ {rules.min_purchase_amount.toFixed(2).replace('.', ',')}</strong>
               </span>
             </div>
           </div>
