@@ -123,14 +123,7 @@ export default function ConsumerDashboard() {
             </p>
             <div className="mt-4 flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    className="w-full bg-white text-primary hover:bg-white/90"
-                  >
-                    Usar na Loja
-                  </Button>
-                </DialogTrigger>
+                <DialogTrigger asChild></DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Utilizar Cashback de Loja</DialogTitle>
