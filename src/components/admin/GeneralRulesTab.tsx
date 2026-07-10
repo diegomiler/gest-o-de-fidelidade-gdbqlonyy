@@ -4,13 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  getCashbackRules,
-  updateCashbackRules,
-  getMinPurchaseUsage,
-  updateMinPurchaseUsage,
-  type CashbackRules,
-} from '@/services/settings'
+import { getCashbackRules, updateCashbackRules, type CashbackRules } from '@/services/settings'
 import { useToast } from '@/hooks/use-toast'
 
 const DEFAULT_RULES: CashbackRules = {
@@ -18,11 +12,11 @@ const DEFAULT_RULES: CashbackRules = {
   store_percent: 10,
   fuel_percent: 2,
   min_redemption_amount: 10,
+  min_purchase_usage: 0,
 }
 
 export function GeneralRulesTab() {
   const [rules, setRules] = useState<CashbackRules>(DEFAULT_RULES)
-  const [minPurchaseUsage, setMinPurchaseUsage] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -32,18 +26,13 @@ export function GeneralRulesTab() {
     let active = true
     const load = async () => {
       try {
-        const [rulesData, usageData] = await Promise.all([
-          getCashbackRules(),
-          getMinPurchaseUsage(),
-        ])
+        const rulesData = await getCashbackRules()
         if (active) {
           setRules(rulesData)
-          setMinPurchaseUsage(usageData.amount)
         }
       } catch {
         if (active) {
           setRules(DEFAULT_RULES)
-          setMinPurchaseUsage(0)
         }
       } finally {
         if (active) setLoading(false)
@@ -93,9 +82,13 @@ export function GeneralRulesTab() {
     } else if (rules.min_redemption_amount <= 0) {
       e.min_redemption_amount = 'O valor deve ser maior que zero.'
     }
-    if (minPurchaseUsage === null || minPurchaseUsage === undefined || isNaN(minPurchaseUsage)) {
+    if (
+      rules.min_purchase_usage === null ||
+      rules.min_purchase_usage === undefined ||
+      isNaN(rules.min_purchase_usage)
+    ) {
       e.min_purchase_usage = 'Informe um valor válido.'
-    } else if (minPurchaseUsage < 0) {
+    } else if (rules.min_purchase_usage < 0) {
       e.min_purchase_usage = 'O valor deve ser maior ou igual a zero.'
     }
     setErrors(e)
@@ -106,7 +99,7 @@ export function GeneralRulesTab() {
     if (!validate()) return
     setSaving(true)
     try {
-      await Promise.all([updateCashbackRules(rules), updateMinPurchaseUsage(minPurchaseUsage)])
+      await updateCashbackRules(rules)
       toast({
         title: 'Configurações atualizadas com sucesso!',
         description:
@@ -126,11 +119,6 @@ export function GeneralRulesTab() {
   const update = (field: keyof CashbackRules, value: string) => {
     const num = parseFloat(value)
     setRules((prev) => ({ ...prev, [field]: isNaN(num) ? 0 : num }))
-  }
-
-  const updateUsage = (value: string) => {
-    const num = parseFloat(value)
-    setMinPurchaseUsage(isNaN(num) ? 0 : num)
   }
 
   if (loading) {
@@ -306,8 +294,8 @@ export function GeneralRulesTab() {
                 min={0}
                 step="0.01"
                 className="pl-10"
-                value={minPurchaseUsage}
-                onChange={(e) => updateUsage(e.target.value)}
+                value={rules.min_purchase_usage}
+                onChange={(e) => update('min_purchase_usage', e.target.value)}
                 placeholder="0,00"
               />
             </div>
