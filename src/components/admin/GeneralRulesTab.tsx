@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Store, Fuel, Save, TrendingUp } from 'lucide-react'
+import { Store, Fuel, Save, TrendingUp, Wallet } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,24 +7,40 @@ import { Label } from '@/components/ui/label'
 import { getCashbackRules, updateCashbackRules, type CashbackRules } from '@/services/settings'
 import { useToast } from '@/hooks/use-toast'
 
+const DEFAULT_RULES: CashbackRules = {
+  min_purchase_amount: 0,
+  store_percent: 10,
+  fuel_percent: 2,
+  min_redemption_amount: 10,
+}
+
 export function GeneralRulesTab() {
-  const [rules, setRules] = useState<CashbackRules>({
-    min_purchase_amount: 0,
-    store_percent: 0,
-    fuel_percent: 0,
-  })
+  const [rules, setRules] = useState<CashbackRules>(DEFAULT_RULES)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const { toast } = useToast()
 
   useEffect(() => {
+    let active = true
     const load = async () => {
-      const data = await getCashbackRules()
-      setRules(data)
-      setLoading(false)
+      try {
+        const data = await getCashbackRules()
+        if (active) {
+          setRules(data)
+        }
+      } catch {
+        if (active) {
+          setRules(DEFAULT_RULES)
+        }
+      } finally {
+        if (active) setLoading(false)
+      }
     }
     load()
+    return () => {
+      active = false
+    }
   }, [])
 
   const validate = (): boolean => {
@@ -55,6 +71,15 @@ export function GeneralRulesTab() {
       e.fuel_percent = 'Informe uma porcentagem válida.'
     } else if (rules.fuel_percent < 0 || rules.fuel_percent > 100) {
       e.fuel_percent = 'A porcentagem deve estar entre 0 e 100.'
+    }
+    if (
+      rules.min_redemption_amount === null ||
+      rules.min_redemption_amount === undefined ||
+      isNaN(rules.min_redemption_amount)
+    ) {
+      e.min_redemption_amount = 'Informe um valor válido.'
+    } else if (rules.min_redemption_amount <= 0) {
+      e.min_redemption_amount = 'O valor deve ser maior que zero.'
     }
     setErrors(e)
     return Object.keys(e).length === 0
@@ -212,6 +237,36 @@ export function GeneralRulesTab() {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="min_redemption" className="flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-600 text-white">
+                <Wallet className="h-4 w-4" />
+              </div>
+              Valor mínimo para uso de cashback
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                R$
+              </span>
+              <Input
+                id="min_redemption"
+                type="number"
+                min={0}
+                step="0.01"
+                className="pl-10"
+                value={rules.min_redemption_amount}
+                onChange={(e) => update('min_redemption_amount', e.target.value)}
+                placeholder="10,00"
+              />
+            </div>
+            {errors.min_redemption_amount && (
+              <p className="text-sm text-destructive">{errors.min_redemption_amount}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Saldo mínimo que o cliente deve ter acumulado para utilizar o cashback em compras.
+            </p>
+          </div>
+
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={saving}>
               {saving ? (
@@ -235,7 +290,7 @@ export function GeneralRulesTab() {
           <CardTitle>Resumo do Programa</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-indigo-600" />
               <span>
@@ -249,10 +304,17 @@ export function GeneralRulesTab() {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-emerald-600" />
+              <div className="h-3 w-3 rounded-full bg-sky-600" />
               <span>
                 Compra mínima:{' '}
                 <strong>R$ {rules.min_purchase_amount.toFixed(2).replace('.', ',')}</strong>
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-3 w-3 rounded-full bg-emerald-600" />
+              <span>
+                Uso mínimo:{' '}
+                <strong>R$ {rules.min_redemption_amount.toFixed(2).replace('.', ',')}</strong>
               </span>
             </div>
           </div>
