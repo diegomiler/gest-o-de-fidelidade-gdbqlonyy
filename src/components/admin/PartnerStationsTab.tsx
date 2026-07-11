@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Search, Building2 } from 'lucide-react'
+import { Search, Building2, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,9 +15,14 @@ import {
 } from '@/components/ui/table'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
-import { getAllPartnerStations, updatePartnerStation } from '@/services/partner-stations'
+import {
+  getAllPartnerStations,
+  updatePartnerStation,
+  deletePartnerStation,
+} from '@/services/partner-stations'
 import { partnerLogo } from '@/lib/format'
 import { PartnerStationForm } from './PartnerStationForm'
+import { ConfirmDelete } from './ConfirmDelete'
 
 export function PartnerStationsTab() {
   const [stations, setStations] = useState<any[]>([])
@@ -56,6 +61,12 @@ export function PartnerStationsTab() {
     }
   }
 
+  const handleDelete = async (id: string) => {
+    await deletePartnerStation(id)
+    toast({ title: 'Posto excluído' })
+    loadData()
+  }
+
   const filtered = stations.filter(
     (s) =>
       !search ||
@@ -87,7 +98,7 @@ export function PartnerStationsTab() {
                 <Building2 className="h-4 w-4 mr-2" /> Adicionar Primeiro Posto
               </Button>
             }
-            onCreated={loadData}
+            onSaved={loadData}
           />
         </CardContent>
       </Card>
@@ -106,7 +117,7 @@ export function PartnerStationsTab() {
             className="pl-9"
           />
         </div>
-        <PartnerStationForm onCreated={loadData} />
+        <PartnerStationForm onSaved={loadData} />
       </div>
 
       <Card>
@@ -120,12 +131,13 @@ export function PartnerStationsTab() {
                 <TableHead>Cidade/UF</TableHead>
                 <TableHead>Telefone</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     Nenhum posto encontrado para &ldquo;{search}&rdquo;.
                   </TableCell>
                 </TableRow>
@@ -159,6 +171,29 @@ export function PartnerStationsTab() {
                       >
                         {p.active ? 'Ativo' : 'Inativo'}
                       </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      <PartnerStationForm
+                        station={p}
+                        onSaved={loadData}
+                        trigger={
+                          <Button variant="ghost" size="sm">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
+                      <ConfirmDelete
+                        title="Excluir posto"
+                        description={`Deseja excluir "${p.name}"? Esta ação não pode ser desfeita.`}
+                        onConfirm={() => handleDelete(p.id)}
+                        trigger={
+                          <Button variant="ghost" size="sm" className="text-red-500">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        }
+                      />
                     </div>
                   </TableCell>
                 </TableRow>

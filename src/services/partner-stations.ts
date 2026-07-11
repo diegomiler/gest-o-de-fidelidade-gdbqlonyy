@@ -8,6 +8,15 @@ export const getPartnerStations = () =>
 export const getAllPartnerStations = () =>
   pb.collection('partner_stations').getFullList({ sort: '-created' })
 
+export const createPartnerStation = (data: {
+  name: string
+  address?: string
+  city?: string
+  state?: string
+  phone?: string
+  active?: boolean
+}) => pb.collection('partner_stations').create(data)
+
 export const updatePartnerStation = (
   id: string,
   data: Partial<{
@@ -18,23 +27,6 @@ export const updatePartnerStation = (
     phone: string
     active: boolean
   }>,
-) =>
-  pb.send(`/backend/v1/partner-stations/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-    headers: { 'Content-Type': 'application/json' },
-  })
+) => pb.collection('partner_stations').update(id, data)
 
-export const createPartnerStation = (data: {
-  name: string
-  address?: string
-  city?: string
-  state?: string
-  phone?: string
-  active?: boolean
-}) =>
-  pb.send('/backend/v1/partner-stations', {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: { 'Content-Type': 'application/json' },
-  })
+export const deletePartnerStation = (id: string) => pb.collection('partner_stations').delete(id)
