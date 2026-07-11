@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, Wallet, LogOut, User as UserIcon } from 'lucide-react'
+import { Bell, LogOut, User as UserIcon, Store, Fuel } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,37 +13,53 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/hooks/use-auth'
-import { getCashbackByUser } from '@/services/cashback'
+import { useRealtime } from '@/hooks/use-realtime'
+import { getReleasedCashbackByUser } from '@/services/cashback'
+import { formatBRLPlain } from '@/lib/format'
 import pb from '@/lib/pocketbase/client'
 
 const PB_URL = import.meta.env.VITE_POCKETBASE_URL
 
+interface CategorizedBalance {
+  store: number
+  fuel: number
+}
+
 export function ConsumerHeader() {
   const { user, signOut, loading } = useAuth()
   const navigate = useNavigate()
-  const [totalBalance, setTotalBalance] = useState(0)
+  const [balance, setBalance] = useState<CategorizedBalance>({ store: 0, fuel: 0 })
   const [balanceLoading, setBalanceLoading] = useState(true)
 
-  useEffect(() => {
+  const loadBalance = useCallback(async () => {
     if (!user?.id) return
-    let cancelled = false
-    setBalanceLoading(true)
-    getCashbackByUser(user.id)
-      .then((records: any[]) => {
-        if (cancelled) return
-        const total = records.reduce((sum, r) => sum + (r.amount_available || 0), 0)
-        setTotalBalance(total)
-      })
-      .catch(() => {
-        if (!cancelled) setTotalBalance(0)
-      })
-      .finally(() => {
-        if (!cancelled) setBalanceLoading(false)
-      })
-    return () => {
-      cancelled = true
+    try {
+      const records: any[] = await getReleasedCashbackByUser(user.id)
+      const store = records
+        .filter((r) => r.type === 'loja')
+        .reduce((sum, r) => sum + (r.amount_available || 0), 0)
+      const fuel = records
+        .filter((r) => r.type === 'combustivel')
+        .reduce((sum, r) => sum + (r.amount_available || 0), 0)
+      setBalance({ store, fuel })
+    } catch {
+      setBalance({ store: 0, fuel: 0 })
+    } finally {
+      setBalanceLoading(false)
     }
   }, [user?.id])
+
+  useEffect(() => {
+    if (!user?.id) {
+      setBalanceLoading(false)
+      return
+    }
+    setBalanceLoading(true)
+    loadBalance()
+  }, [loadBalance, user?.id])
+
+  useRealtime('cashback', () => loadBalance())
+  useRealtime('purchases', () => loadBalance())
 
   const avatarUrl = user?.avatar ? `${PB_URL}/api/files/users/${user.id}/${user.avatar}` : undefined
 
@@ -69,14 +85,43 @@ export function ConsumerHeader() {
           <span className="font-bold text-lg hidden sm:inline-block">Fidelidade</span>
         </Link>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full">
-            <Wallet className="h-4 w-4 text-emerald-600" />
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-full">
+              <Store className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-muted-foreground">Loja:</span>
+              {balanceLoading ? (
+                <Skeleton className="h-4 w-12" />
+              ) : (
+                <span className="font-semibold text-sm">R$ {formatBRLPlain(balance.store)}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 rounded-full">
+              <Fuel className="h-4 w-4 text-amber-600" />
+              <span className="text-xs font-medium text-amber-700/80">Postos:</span>
+              {balanceLoading ? (
+                <Skeleton className="h-4 w-12" />
+              ) : (
+                <span className="font-semibold text-sm text-amber-700">
+                  R$ {formatBRLPlain(balance.fuel)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex md:hidden items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 rounded-full">
+            <Store className="h-3.5 w-3.5 text-primary" />
             {balanceLoading ? (
-              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-3 w-8" />
             ) : (
-              <span className="font-semibold text-sm">
-                R$ {totalBalance.toFixed(2).replace('.', ',')}
+              <span className="font-semibold text-xs">{formatBRLPlain(balance.store)}</span>
+            )}
+            <Fuel className="h-3.5 w-3.5 text-amber-600 ml-1" />
+            {balanceLoading ? (
+              <Skeleton className="h-3 w-8" />
+            ) : (
+              <span className="font-semibold text-xs text-amber-700">
+                {formatBRLPlain(balance.fuel)}
               </span>
             )}
           </div>
