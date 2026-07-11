@@ -227,7 +227,6 @@ export default function ConsumerStatement() {
                     )}
                   </div>
                   <div>
-                    <p className="text-sm font-medium">{tx.store}</p>
                     <p className="text-sm text-muted-foreground">
                       {formatBRL(tx.value)} • {formatDate(tx.date)}
                     </p>
