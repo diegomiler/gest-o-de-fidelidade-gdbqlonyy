@@ -27,6 +27,7 @@ export interface AdminCustomer {
   email: string
   cpf: string
   phone: string
+  avatar: string
   status: boolean
   created: string
   purchaseCount: number

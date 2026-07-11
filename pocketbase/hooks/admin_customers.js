@@ -32,6 +32,7 @@ routerAdd(
         email: u.getString('email') || '',
         cpf: u.getString('cpf') || '',
         phone: u.getString('phone') || '',
+        avatar: u.getString('avatar') || '',
         status: u.get('status'),
         created: u.getString('created'),
         purchaseCount: purchaseCount,
