@@ -78,7 +78,7 @@ export function ProgramSummary({ refreshKey }: ProgramSummaryProps) {
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full bg-amber-600" />
               <span>
-                Combustível: <strong>{rules?.fuel_percent ?? 0}%</strong> por abastecimento
+                Combustível: <strong>{rules?.fuel_percent ?? 0}%</strong> por compra
               </span>
             </div>
             <div className="flex items-center gap-2">
