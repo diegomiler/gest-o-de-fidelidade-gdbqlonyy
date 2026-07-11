@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Bell, ArrowLeftRight } from 'lucide-react'
+import { ArrowLeftRight } from 'lucide-react'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,9 +36,6 @@ export function AdminHeader() {
             <ArrowLeftRight className="h-4 w-4 mr-2" />
             Visão Cliente
           </Link>
-        </Button>
-        <Button variant="ghost" size="icon">
-          <Bell className="h-5 w-5" />
         </Button>
       </div>
     </header>
