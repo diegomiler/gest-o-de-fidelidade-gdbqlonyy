@@ -264,7 +264,7 @@ export default function ConsumerStatement() {
                           <AlertTriangle className="h-3 w-3" />
                           Divergência
                         </Badge>
-                      )
+                      )}
                     </div>
                   </div>
                 </div>
