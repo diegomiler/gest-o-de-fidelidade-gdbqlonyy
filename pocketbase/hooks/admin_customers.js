@@ -20,7 +20,13 @@ routerAdd(
       } catch (_) {}
 
       try {
-        var cbs = $app.findRecordsByFilter('cashback', "client = '" + u.id + "'", '', 0, 0)
+        var cbs = $app.findRecordsByFilter(
+          'cashback',
+          "client = '" + u.id + "' && status = 'released'",
+          '',
+          0,
+          0,
+        )
         for (var k = 0; k < cbs.length; k++) {
           cashbackTotal += cbs[k].get('amount_available') || 0
         }

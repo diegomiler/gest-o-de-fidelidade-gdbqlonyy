@@ -45,6 +45,7 @@ export default function AdminCustomers() {
     loadData()
   }, [loadData])
   useRealtime('purchases', () => loadData())
+  useRealtime('cashback', () => loadData())
 
   useEffect(() => {
     if (!search) {
@@ -95,7 +96,7 @@ export default function AdminCustomers() {
                 <TableHead>Contato</TableHead>
                 <TableHead className="text-right">Compras</TableHead>
                 <TableHead className="text-right">Total Gasto</TableHead>
-                <TableHead className="text-right">Cashback</TableHead>
+                <TableHead className="text-right">Cashback Disponível</TableHead>
                 <TableHead>Cadastro</TableHead>
               </TableRow>
             </TableHeader>
