@@ -256,7 +256,15 @@ export default function ConsumerStatement() {
                           {tx.items.length} {tx.items.length === 1 ? 'item' : 'itens'}
                         </Badge>
                       )}
-                      {tx.hasDivergence && null}
+                      {tx.hasDivergence && (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-50 text-amber-700 border-amber-200 gap-1"
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          Divergência
+                        </Badge>
+                      )
                     </div>
                   </div>
                 </div>

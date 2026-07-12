@@ -43,6 +43,7 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
   const calculatedTotal = items.reduce((sum, item) => sum + item.qty * item.price, 0)
   const hasItems = items.length > 0
   const storedTotal = purchase.total_amount || 0
+  const displayTotal = hasItems ? calculatedTotal : storedTotal
   const hasDivergence = hasItems && Math.abs(calculatedTotal - storedTotal) > 0.01
 
   return (
@@ -61,7 +62,15 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
 
         <ScrollArea className="max-h-[55vh] pr-4">
           <div className="space-y-4">
-            {hasDivergence && null}
+            {hasDivergence && (
+              <Alert className="border-amber-200 bg-amber-50 text-amber-800">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Divergência detectada: o total calculado dos itens ({formatBRL(calculatedTotal)})
+                  difere do valor armazenado no banco de dados ({formatBRL(storedTotal)}).
+                </AlertDescription>
+              </Alert>
+            )}
 
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
               <span className="text-sm text-muted-foreground">Forma de Pagamento</span>
@@ -100,17 +109,19 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
               )}
             </div>
 
-            {hasItems && null}
-
             <div className="flex items-center justify-between pt-3 border-t-2">
               <span className="font-semibold">Total da Compra</span>
               <div className="text-right">
                 <span
                   className={`text-lg font-bold ${hasDivergence ? 'text-amber-600' : 'text-primary'}`}
                 >
-                  {formatBRL(storedTotal)}
+                  {formatBRL(displayTotal)}
                 </span>
-                {hasDivergence && null}
+                {hasDivergence && (
+                  <p className="text-xs text-muted-foreground line-through">
+                    {formatBRL(storedTotal)}
+                  </p>
+                )}
               </div>
             </div>
           </div>
