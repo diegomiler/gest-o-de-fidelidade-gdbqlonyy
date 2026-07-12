@@ -100,12 +100,7 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
               )}
             </div>
 
-            {hasItems && (
-              <div className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2.5">
-                <span className="text-sm font-medium text-primary">Total Calculado (Itens)</span>
-                <span className="text-sm font-bold text-primary">{formatBRL(calculatedTotal)}</span>
-              </div>
-            )}
+            {hasItems && null}
 
             <div className="flex items-center justify-between pt-3 border-t-2">
               <span className="font-semibold">Total da Compra</span>
