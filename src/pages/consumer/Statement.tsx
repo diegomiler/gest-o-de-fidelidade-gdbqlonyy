@@ -7,6 +7,7 @@ import {
   ChevronRight,
   CalendarRange,
   X,
+  AlertTriangle,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +26,8 @@ interface Transaction {
   date: string
   store: string
   value: number
+  calculatedTotal: number
+  hasDivergence: boolean
   cashbackStore: number
   cashbackFuel: number
   status: string
@@ -85,15 +88,23 @@ export default function ConsumerStatement() {
           .filter((c: any) => c.type === 'combustivel')
           .reduce((s: number, c: any) => s + (c.amount_generated || 0), 0)
         const cashbackStatus = cbs[0]?.status || 'pending'
+        const parsedItems = parseItems(p.items)
+        const calculatedTotal = parsedItems.reduce(
+          (s: number, item: any) => s + (item.qty || 0) * (item.price || 0),
+          0,
+        )
+        const storedTotal = p.total_amount || 0
         return {
           id: p.id,
           date: p.purchase_date || p.created,
           store: p.origin_channel || 'Compra',
-          value: p.total_amount || 0,
+          value: calculatedTotal > 0 ? calculatedTotal : storedTotal,
+          calculatedTotal,
+          hasDivergence: parsedItems.length > 0 && Math.abs(calculatedTotal - storedTotal) > 0.01,
           cashbackStore: cbStore,
           cashbackFuel: cbFuel,
           status: cbs.length === 0 ? 'sem cashback' : STATUS_MAP[cashbackStatus] || cashbackStatus,
-          items: parseItems(p.items),
+          items: parsedItems,
           paymentMethod: p.payment_method || '',
           raw: p,
         }
@@ -230,7 +241,7 @@ export default function ConsumerStatement() {
                     <p className="text-sm text-muted-foreground">
                       {formatBRL(tx.value)} • {formatDate(tx.date)}
                     </p>
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
                       <Badge
                         variant="outline"
                         className={STATUS_COLORS[tx.status] || 'bg-gray-100 text-gray-800'}
@@ -243,6 +254,14 @@ export default function ConsumerStatement() {
                           className="bg-violet-50 text-violet-700 border-violet-200"
                         >
                           {tx.items.length} {tx.items.length === 1 ? 'item' : 'itens'}
+                        </Badge>
+                      )}
+                      {tx.hasDivergence && (
+                        <Badge
+                          variant="outline"
+                          className="bg-amber-50 text-amber-700 border-amber-200 gap-1"
+                        >
+                          <AlertTriangle className="h-3 w-3" /> Divergente
                         </Badge>
                       )}
                     </div>

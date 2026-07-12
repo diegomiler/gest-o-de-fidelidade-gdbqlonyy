@@ -1,4 +1,4 @@
-import { CreditCard, ShoppingBag, Calendar } from 'lucide-react'
+import { CreditCard, ShoppingBag, Calendar, AlertTriangle } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatBRL, formatDateTime } from '@/lib/format'
 
 interface PurchaseItem {
@@ -39,8 +40,10 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
   if (!purchase) return null
 
   const items = parseItems(purchase.items)
-  const total = items.reduce((sum, item) => sum + item.qty * item.price, 0)
-  const hasItemsTotal = items.length > 0
+  const calculatedTotal = items.reduce((sum, item) => sum + item.qty * item.price, 0)
+  const hasItems = items.length > 0
+  const storedTotal = purchase.total_amount || 0
+  const hasDivergence = hasItems && Math.abs(calculatedTotal - storedTotal) > 0.01
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,6 +61,17 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
 
         <ScrollArea className="max-h-[55vh] pr-4">
           <div className="space-y-4">
+            {hasDivergence && (
+              <Alert variant="destructive" className="border-amber-200 bg-amber-50 text-amber-800">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800">
+                  <span className="font-semibold">Valores divergentes</span> — o total registrado (
+                  {formatBRL(storedTotal)}) não corresponde à soma dos itens (
+                  {formatBRL(calculatedTotal)}).
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
               <span className="text-sm text-muted-foreground">Forma de Pagamento</span>
               <Badge variant="secondary" className="gap-1">
@@ -95,15 +109,24 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
               )}
             </div>
 
+            {hasItems && (
+              <div className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2.5">
+                <span className="text-sm font-medium text-primary">Total Calculado (Itens)</span>
+                <span className="text-sm font-bold text-primary">{formatBRL(calculatedTotal)}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-3 border-t-2">
               <span className="font-semibold">Total da Compra</span>
               <div className="text-right">
-                <span className="text-lg font-bold text-primary">
-                  {formatBRL(purchase.total_amount || 0)}
+                <span
+                  className={`text-lg font-bold ${hasDivergence ? 'text-amber-600' : 'text-primary'}`}
+                >
+                  {formatBRL(storedTotal)}
                 </span>
-                {hasItemsTotal && Math.abs(total - (purchase.total_amount || 0)) > 0.01 && (
-                  <p className="text-xs text-muted-foreground">
-                    Soma dos itens: {formatBRL(total)}
+                {hasDivergence && (
+                  <p className="text-xs text-amber-600 flex items-center justify-end gap-1 mt-0.5">
+                    <AlertTriangle className="h-3 w-3" /> Divergente
                   </p>
                 )}
               </div>
