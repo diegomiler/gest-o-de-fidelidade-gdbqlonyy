@@ -109,11 +109,7 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
                 >
                   {formatBRL(displayTotal)}
                 </span>
-                {hasDivergence && (
-                  <p className="text-xs text-muted-foreground line-through">
-                    {formatBRL(storedTotal)}
-                  </p>
-                )}
+                {hasDivergence && null}
               </div>
             </div>
           </div>
