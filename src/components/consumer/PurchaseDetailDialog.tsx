@@ -115,11 +115,7 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
                 >
                   {formatBRL(storedTotal)}
                 </span>
-                {hasDivergence && (
-                  <p className="text-xs text-amber-600 flex items-center justify-end gap-1 mt-0.5">
-                    <AlertTriangle className="h-3 w-3" /> Divergente
-                  </p>
-                )}
+                {hasDivergence && null}
               </div>
             </div>
           </div>
