@@ -177,14 +177,15 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
               )}
               {stats.topClients.map((c, i) => {
-                const avatarUrl = c.avatar
-                  ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${c.id}/${c.avatar}`
-                  : `https://img.usecurling.com/ppl/thumbnail?seed=${i + 1}`
+                const avatarUrl = getFileUrl(
+                  { id: c.id, avatar: c.avatar, collectionName: 'users' },
+                  'avatar',
+                )
                 return (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar>
-                        <AvatarImage src={avatarUrl} />
+                        <AvatarImage src={avatarUrl} className="aspect-square h-full w-full" />
                         <AvatarFallback>{c.name?.[0] || 'C'}</AvatarFallback>
                       </Avatar>
                       <div>
