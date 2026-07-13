@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Search, Code } from 'lucide-react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import { Search, Code, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -23,12 +23,13 @@ export default function AdminSales() {
   const [loading, setLoading] = useState(true)
   const [selectedAudit, setSelectedAudit] = useState<AdminSale | null>(null)
   const [search, setSearch] = useState('')
+  const [sortField, setSortField] = useState<'date' | 'total_amount'>('date')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   const loadData = useCallback(async () => {
     try {
       const { sales: data } = await getAdminSales()
       setSales(data)
-      setFiltered(data)
     } catch {
       /* intentionally ignored */
     } finally {
@@ -41,21 +42,46 @@ export default function AdminSales() {
   }, [loadData])
   useRealtime('purchases', () => loadData())
 
-  useEffect(() => {
-    if (!search) {
-      setFiltered(sales)
-      return
-    }
-    const q = search.toLowerCase()
-    setFiltered(
-      sales.filter(
+  const filtered = useMemo(() => {
+    let result = sales
+    if (search) {
+      const q = search.toLowerCase()
+      result = result.filter(
         (s) =>
           s.client_name?.toLowerCase().includes(q) ||
           s.client_cpf?.includes(q) ||
           s.api_sale_id?.toLowerCase().includes(q),
-      ),
+      )
+    }
+    result = [...result].sort((a, b) => {
+      let cmp = 0
+      if (sortField === 'total_amount') {
+        cmp = (a.total_amount || 0) - (b.total_amount || 0)
+      } else {
+        cmp = new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime()
+      }
+      return sortDir === 'desc' ? -cmp : cmp
+    })
+    return result
+  }, [sales, search, sortField, sortDir])
+
+  const toggleSort = (field: 'date' | 'total_amount') => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === 'desc' ? 'asc' : 'desc'))
+    } else {
+      setSortField(field)
+      setSortDir('desc')
+    }
+  }
+
+  const SortIcon = ({ field }: { field: 'date' | 'total_amount' }) => {
+    if (sortField !== field) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-50" />
+    return sortDir === 'desc' ? (
+      <ArrowDown className="ml-1 inline h-3 w-3" />
+    ) : (
+      <ArrowUp className="ml-1 inline h-3 w-3" />
     )
-  }, [search, sales])
+  }
 
   if (loading)
     return (
@@ -85,9 +111,23 @@ export default function AdminSales() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Data</TableHead>
+                <TableHead>
+                  <button
+                    className="inline-flex items-center hover:text-foreground transition-colors"
+                    onClick={() => toggleSort('date')}
+                  >
+                    Data <SortIcon field="date" />
+                  </button>
+                </TableHead>
                 <TableHead>Cliente / CPF</TableHead>
-                <TableHead className="text-right">Valor (R$)</TableHead>
+                <TableHead className="text-right">
+                  <button
+                    className="inline-flex items-center hover:text-foreground transition-colors"
+                    onClick={() => toggleSort('total_amount')}
+                  >
+                    Valor (R$) <SortIcon field="total_amount" />
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">CB Loja</TableHead>
                 <TableHead className="text-right">CB Comb.</TableHead>
                 <TableHead>Status</TableHead>

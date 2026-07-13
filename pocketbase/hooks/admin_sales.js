@@ -4,38 +4,40 @@ routerAdd(
   (e) => {
     var purchases = $app.findRecordsByFilter('purchases', '', '-created', 0, 0)
 
+    var cashbackByPurchase = {}
+    var allCashback = $app.findRecordsByFilter('cashback', '', '-created', 0, 0)
+    for (var ci = 0; ci < allCashback.length; ci++) {
+      var cb = allCashback[ci]
+      var pid = cb.getString('purchase')
+      if (!pid) continue
+      if (!cashbackByPurchase[pid]) {
+        cashbackByPurchase[pid] = { store: 0, fuel: 0 }
+      }
+      var amount = cb.get('amount_generated') || 0
+      if (cb.getString('type') === 'loja') {
+        cashbackByPurchase[pid].store += amount
+      } else if (cb.getString('type') === 'combustivel') {
+        cashbackByPurchase[pid].fuel += amount
+      }
+    }
+
     var sales = []
     for (var i = 0; i < purchases.length; i++) {
       var p = purchases[i]
       var clientId = p.getString('client')
+
       var clientName = ''
       var clientCpf = ''
+      if (clientId) {
+        try {
+          var user = $app.findRecordById('users', clientId)
+          clientName = user.getString('name') || ''
+          clientCpf = user.getString('cpf') || ''
+        } catch (_) {}
+      }
 
-      try {
-        var user = $app.findRecordById('users', clientId)
-        clientName = user.getString('name') || ''
-        clientCpf = user.getString('cpf') || ''
-      } catch (_) {}
-
-      var cbStore = 0
-      var cbFuel = 0
-      try {
-        var cashbackRecords = $app.findRecordsByFilter(
-          'cashback',
-          'purchase = {:pid}',
-          '',
-          0,
-          0,
-          p.id,
-        )
-        for (var j = 0; j < cashbackRecords.length; j++) {
-          var cb = cashbackRecords[j]
-          var cbType = cb.getString('type')
-          var cbAmount = cb.get('amount_generated') || 0
-          if (cbType === 'loja') cbStore += cbAmount
-          else if (cbType === 'combustivel') cbFuel += cbAmount
-        }
-      } catch (_) {}
+      var pid = p.id
+      var cbInfo = cashbackByPurchase[pid] || { store: 0, fuel: 0 }
 
       sales.push({
         id: p.id,
@@ -44,9 +46,9 @@ routerAdd(
         client_name: clientName,
         client_cpf: clientCpf,
         total_amount: p.get('total_amount') || 0,
-        cb_store: cbStore,
-        cb_fuel: cbFuel,
-        status: p.getString('status') || '',
+        cb_store: cbInfo.store,
+        cb_fuel: cbInfo.fuel,
+        status: p.getString('status') || 'pending',
       })
     }
 
