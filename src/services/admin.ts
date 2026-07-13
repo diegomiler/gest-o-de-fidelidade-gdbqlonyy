@@ -6,7 +6,7 @@ export interface AdminStats {
   redemptionCount: number
   userCount: number
   chartData: Array<{ date: string; sales: number; cashback: number }>
-  topClients: Array<{ name: string; total: number; purchases: number }>
+  topClients: Array<{ id: string; name: string; avatar: string; total: number; purchases: number }>
 }
 
 export interface AdminSale {
@@ -33,6 +33,8 @@ export interface AdminCustomer {
   purchaseCount: number
   totalSpent: number
   cashbackTotal: number
+  cashbackStore: number
+  cashbackFuel: number
 }
 
 export const getAdminStats = (): Promise<AdminStats> =>

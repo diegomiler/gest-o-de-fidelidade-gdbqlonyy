@@ -96,14 +96,15 @@ export default function AdminCustomers() {
                 <TableHead>Contato</TableHead>
                 <TableHead className="text-right">Compras</TableHead>
                 <TableHead className="text-right">Total Gasto</TableHead>
-                <TableHead className="text-right">Cashback Disponível</TableHead>
+                <TableHead className="text-right">Cashback Loja</TableHead>
+                <TableHead className="text-right">Cashback Posto</TableHead>
                 <TableHead>Cadastro</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhum cliente encontrado.
                   </TableCell>
                 </TableRow>
@@ -133,7 +134,10 @@ export default function AdminCustomers() {
                     {formatBRL(c.totalSpent)}
                   </TableCell>
                   <TableCell className="text-right text-primary">
-                    {formatBRL(c.cashbackTotal)}
+                    {formatBRL(c.cashbackStore)}
+                  </TableCell>
+                  <TableCell className="text-right text-primary">
+                    {formatBRL(c.cashbackFuel)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {c.created ? formatDate(c.created) : '—'}

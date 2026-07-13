@@ -52,12 +52,16 @@ routerAdd(
     for (var m = 0; m < Math.min(clientIds.length, 5); m++) {
       var cId = clientIds[m]
       var name = 'Desconhecido'
+      var avatar = ''
       try {
         var user = $app.findRecordById('users', cId)
         name = user.getString('name') || 'Desconhecido'
+        avatar = user.getString('avatar') || ''
       } catch (_) {}
       topClients.push({
+        id: cId,
         name: name,
+        avatar: avatar,
         total: clientTotals[cId].total,
         purchases: clientTotals[cId].count,
       })

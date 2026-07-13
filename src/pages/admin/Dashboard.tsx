@@ -16,7 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getAdminStats, type AdminStats } from '@/services/admin'
 import { getAllBanners } from '@/services/banners'
-import { formatBRL, formatDate, bannerImage } from '@/lib/format'
+import { formatBRL, formatDate, bannerImage, getFileUrl } from '@/lib/format'
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
@@ -176,21 +176,26 @@ export default function AdminDashboard() {
               {stats.topClients.length === 0 && (
                 <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
               )}
-              {stats.topClients.map((c, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={`https://img.usecurling.com/ppl/thumbnail?seed=${i + 1}`} />
-                      <AvatarFallback>{c.name?.[0] || 'C'}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">{c.name}</p>
-                      <p className="text-xs text-muted-foreground">{c.purchases} compras</p>
+              {stats.topClients.map((c, i) => {
+                const avatarUrl = c.avatar
+                  ? `${import.meta.env.VITE_POCKETBASE_URL}/api/files/users/${c.id}/${c.avatar}`
+                  : `https://img.usecurling.com/ppl/thumbnail?seed=${i + 1}`
+                return (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Avatar>
+                        <AvatarImage src={avatarUrl} />
+                        <AvatarFallback>{c.name?.[0] || 'C'}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="text-sm font-medium">{c.name}</p>
+                        <p className="text-xs text-muted-foreground">{c.purchases} compras</p>
+                      </div>
                     </div>
+                    <div className="text-sm font-bold">{formatBRL(c.total)}</div>
                   </div>
-                  <div className="text-sm font-bold">{formatBRL(c.total)}</div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>

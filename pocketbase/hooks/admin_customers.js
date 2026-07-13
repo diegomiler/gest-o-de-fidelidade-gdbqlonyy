@@ -19,6 +19,9 @@ routerAdd(
         }
       } catch (_) {}
 
+      var cashbackStore = 0
+      var cashbackFuel = 0
+
       try {
         var cbs = $app.findRecordsByFilter(
           'cashback',
@@ -28,7 +31,14 @@ routerAdd(
           0,
         )
         for (var k = 0; k < cbs.length; k++) {
-          cashbackTotal += cbs[k].get('amount_available') || 0
+          var cbType = cbs[k].getString('type') || ''
+          var cbAmount = cbs[k].get('amount_available') || 0
+          cashbackTotal += cbAmount
+          if (cbType === 'loja') {
+            cashbackStore += cbAmount
+          } else if (cbType === 'combustivel') {
+            cashbackFuel += cbAmount
+          }
         }
       } catch (_) {}
 
@@ -44,6 +54,8 @@ routerAdd(
         purchaseCount: purchaseCount,
         totalSpent: totalSpent,
         cashbackTotal: cashbackTotal,
+        cashbackStore: cashbackStore,
+        cashbackFuel: cashbackFuel,
       })
     }
 
