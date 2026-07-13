@@ -18,6 +18,13 @@ import { getAdminStats, type AdminStats } from '@/services/admin'
 import { getAllBanners } from '@/services/banners'
 import { formatBRL, formatDate, bannerImage, getFileUrl } from '@/lib/format'
 
+function getInitials(name: string): string {
+  if (!name) return 'C'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0][0]?.toUpperCase() || 'C'
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [banners, setBanners] = useState<any[]>([])
@@ -186,8 +193,8 @@ export default function AdminDashboard() {
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarImage src={avatarUrl} className="aspect-square h-full w-full" />
-                        <AvatarFallback>{c.name?.[0] || 'C'}</AvatarFallback>
-                      </Avatar>
+                        <AvatarFallback>{getInitials(c.name)}</AvatarFallback>
+                      </Avatar>{' '}
                       <div>
                         <p className="text-sm font-medium">{c.name}</p>
                         <p className="text-xs text-muted-foreground">{c.purchases} compras</p>

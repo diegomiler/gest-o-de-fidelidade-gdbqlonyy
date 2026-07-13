@@ -2,7 +2,7 @@ routerAdd(
   'GET',
   '/backend/v1/admin/stats',
   (e) => {
-    var purchases = $app.findRecordsByFilter('purchases', '1=1', '-created', 0, 0)
+    var purchases = $app.findRecordsByFilter('purchases', "status = 'approved'", '-created', 0, 0)
     var cashbacks = $app.findRecordsByFilter('cashback', '1=1', '-created', 0, 0)
 
     var totalSales = 0
