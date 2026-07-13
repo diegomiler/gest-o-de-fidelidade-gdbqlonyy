@@ -1,3 +1,31 @@
+onRecordCreate((e) => {
+  var purchase = e.record
+  var rawItems = purchase.get('items')
+
+  var items = rawItems
+  if (typeof items === 'string') {
+    try {
+      items = JSON.parse(items)
+    } catch (_) {
+      items = null
+    }
+  }
+
+  var calculatedTotal = 0
+  if (Array.isArray(items) && items.length > 0) {
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i]
+      if (item && typeof item.qty === 'number' && typeof item.price === 'number') {
+        calculatedTotal += item.qty * item.price
+      }
+    }
+  }
+
+  purchase.set('total_amount', calculatedTotal)
+
+  e.next()
+}, 'purchases')
+
 onRecordAfterCreateSuccess((e) => {
   var purchase = e.record
   var totalAmount = purchase.get('total_amount') || 0

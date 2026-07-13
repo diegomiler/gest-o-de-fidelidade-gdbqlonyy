@@ -2,35 +2,45 @@ routerAdd(
   'GET',
   '/backend/v1/admin/sales',
   (e) => {
-    var purchases = $app.findRecordsByFilter('purchases', '1=1', '-purchase_date', 0, 0)
+    var purchases = $app.findRecordsByFilter('purchases', '', '-created', 0, 0)
 
     var sales = []
     for (var i = 0; i < purchases.length; i++) {
       var p = purchases[i]
+      var clientId = p.getString('client')
       var clientName = ''
       var clientCpf = ''
 
       try {
-        var client = $app.findRecordById('users', p.getString('client'))
-        clientName = client.getString('name') || ''
-        clientCpf = client.getString('cpf') || ''
+        var user = $app.findRecordById('users', clientId)
+        clientName = user.getString('name') || ''
+        clientCpf = user.getString('cpf') || ''
       } catch (_) {}
 
       var cbStore = 0
       var cbFuel = 0
       try {
-        var cbs = $app.findRecordsByFilter('cashback', "purchase = '" + p.id + "'", '', 0, 0)
-        for (var j = 0; j < cbs.length; j++) {
-          if (cbs[j].getString('type') === 'loja') cbStore += cbs[j].get('amount_generated') || 0
-          if (cbs[j].getString('type') === 'combustivel')
-            cbFuel += cbs[j].get('amount_generated') || 0
+        var cashbackRecords = $app.findRecordsByFilter(
+          'cashback',
+          'purchase = {:pid}',
+          '',
+          0,
+          0,
+          p.id,
+        )
+        for (var j = 0; j < cashbackRecords.length; j++) {
+          var cb = cashbackRecords[j]
+          var cbType = cb.getString('type')
+          var cbAmount = cb.get('amount_generated') || 0
+          if (cbType === 'loja') cbStore += cbAmount
+          else if (cbType === 'combustivel') cbFuel += cbAmount
         }
       } catch (_) {}
 
       sales.push({
         id: p.id,
         api_sale_id: p.getString('api_sale_id') || '',
-        date: p.getString('purchase_date') || p.getString('created'),
+        date: p.getString('purchase_date') || p.getString('created') || '',
         client_name: clientName,
         client_cpf: clientCpf,
         total_amount: p.get('total_amount') || 0,
