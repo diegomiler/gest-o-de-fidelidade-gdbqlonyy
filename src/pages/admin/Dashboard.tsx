@@ -200,7 +200,10 @@ export default function AdminDashboard() {
                         <p className="text-xs text-muted-foreground">{c.purchases} compras</p>
                       </div>
                     </div>
-                    <div className="text-sm font-bold">{formatBRL(c.total)}</div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Valor Gasto</p>
+                      <div className="text-sm font-bold">{formatBRL(c.total)}</div>
+                    </div>
                   </div>
                 )
               })}

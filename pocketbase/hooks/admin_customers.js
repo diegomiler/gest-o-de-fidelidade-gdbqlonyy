@@ -12,7 +12,13 @@ routerAdd(
       var cashbackTotal = 0
 
       try {
-        var purchases = $app.findRecordsByFilter('purchases', "client = '" + u.id + "'", '', 0, 0)
+        var purchases = $app.findRecordsByFilter(
+          'purchases',
+          "client = '" + u.id + "' && status = 'approved'",
+          '',
+          0,
+          0,
+        )
         purchaseCount = purchases.length
         for (var j = 0; j < purchases.length; j++) {
           totalSpent += purchases[j].get('total_amount') || 0
