@@ -19,7 +19,6 @@ import { formatBRL, formatDateTime } from '@/lib/format'
 
 export default function AdminSales() {
   const [sales, setSales] = useState<AdminSale[]>([])
-  const [filtered, setFiltered] = useState<AdminSale[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedAudit, setSelectedAudit] = useState<AdminSale | null>(null)
   const [search, setSearch] = useState('')
