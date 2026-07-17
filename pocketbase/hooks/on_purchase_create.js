@@ -15,9 +15,10 @@ onRecordCreate((e) => {
   if (Array.isArray(items) && items.length > 0) {
     for (var i = 0; i < items.length; i++) {
       var item = items[i]
-      if (item && typeof item.qty === 'number' && typeof item.price === 'number') {
-        calculatedTotal += item.qty * item.price
-      }
+      if (!item) continue
+      var qty = Number(item.quantity != null ? item.quantity : item.qty) || 0
+      var unitPrice = Number(item.unit_price != null ? item.unit_price : item.price) || 0
+      calculatedTotal += qty * unitPrice
     }
   }
 

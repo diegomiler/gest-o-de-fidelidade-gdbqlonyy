@@ -48,9 +48,11 @@ export function partnerLogo(partner: any): string {
 }
 
 interface PurchaseItem {
-  name: string
-  qty: number
-  price: number
+  name?: string
+  quantity?: number
+  unit_price?: number
+  qty?: number
+  price?: number
 }
 
 function parseItems(raw: any): PurchaseItem[] {
@@ -66,17 +68,16 @@ function parseItems(raw: any): PurchaseItem[] {
   return []
 }
 
+function itemTotal(item: PurchaseItem): number {
+  const qty = Number(item.quantity ?? item.qty) || 0
+  const unitPrice = Number(item.unit_price ?? item.price) || 0
+  return qty * unitPrice
+}
+
 export function calculatePurchaseTotal(purchase: any): number {
   const items = parseItems(purchase?.items)
   if (items.length > 0) {
-    const calculated = items.reduce(
-      (sum, item) =>
-        sum +
-        (typeof item.qty === 'number' && typeof item.price === 'number'
-          ? item.qty * item.price
-          : 0),
-      0,
-    )
+    const calculated = items.reduce((sum, item) => sum + itemTotal(item), 0)
     if (calculated > 0) return calculated
   }
   return purchase?.total_amount || 0

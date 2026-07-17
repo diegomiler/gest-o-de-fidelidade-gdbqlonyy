@@ -24,8 +24,11 @@ routerAdd(
                 if (Array.isArray(parsedItems)) {
                   var itemsTotal = 0
                   for (var m = 0; m < parsedItems.length; m++) {
-                    itemsTotal +=
-                      (Number(parsedItems[m].qty) || 0) * (Number(parsedItems[m].price) || 0)
+                    var it = parsedItems[m]
+                    if (!it) continue
+                    var iq = Number(it.quantity != null ? it.quantity : it.qty) || 0
+                    var ip = Number(it.unit_price != null ? it.unit_price : it.price) || 0
+                    itemsTotal += iq * ip
                   }
                   if (itemsTotal > 0) amount = itemsTotal
                 }
