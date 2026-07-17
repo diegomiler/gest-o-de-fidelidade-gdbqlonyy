@@ -12,16 +12,27 @@ routerAdd(
       var cashbackTotal = 0
 
       try {
-        var purchases = $app.findRecordsByFilter(
-          'purchases',
-          "client = '" + u.id + "' && status = 'approved'",
-          '',
-          0,
-          0,
-        )
+        var purchases = $app.findRecordsByFilter('purchases', "client = '" + u.id + "'", '', 0, 0)
         purchaseCount = purchases.length
         for (var j = 0; j < purchases.length; j++) {
-          totalSpent += purchases[j].get('total_amount') || 0
+          var amount = Number(purchases[j].get('total_amount')) || 0
+          if (amount === 0) {
+            var itemsRaw = purchases[j].get('items')
+            if (itemsRaw) {
+              try {
+                var parsedItems = typeof itemsRaw === 'string' ? JSON.parse(itemsRaw) : itemsRaw
+                if (Array.isArray(parsedItems)) {
+                  var itemsTotal = 0
+                  for (var m = 0; m < parsedItems.length; m++) {
+                    itemsTotal +=
+                      (Number(parsedItems[m].qty) || 0) * (Number(parsedItems[m].price) || 0)
+                  }
+                  if (itemsTotal > 0) amount = itemsTotal
+                }
+              } catch (_) {}
+            }
+          }
+          totalSpent += amount
         }
       } catch (_) {}
 
