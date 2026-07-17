@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Info, ArrowRight, Store, Fuel, ScanLine } from 'lucide-react'
+import { Info, ArrowRight, Store, Fuel, ScanLine, Receipt } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,7 @@ import {
 } from '@/components/ui/dialog'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
 import { Skeleton } from '@/components/ui/skeleton'
+import { PurchaseDetailDialog } from '@/components/consumer/PurchaseDetailDialog'
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getCashbackByUser } from '@/services/cashback'
@@ -24,13 +26,24 @@ import { getBanners } from '@/services/banners'
 import { getCashbackRules } from '@/services/settings'
 import { formatBRL, formatDate, bannerImage } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
-import pb from '@/lib/pocketbase/client'
 
 interface Balance {
   store: number
   fuel: number
   pendingStore: number
   pendingFuel: number
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  approved: 'Aprovado',
+  canceled: 'Cancelado',
+}
+
+const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive'> = {
+  pending: 'secondary',
+  approved: 'default',
+  canceled: 'destructive',
 }
 
 export default function ConsumerDashboard() {
@@ -47,6 +60,8 @@ export default function ConsumerDashboard() {
   const [purchaseAmount, setPurchaseAmount] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [minPurchaseUsage, setMinPurchaseUsage] = useState(0)
+  const [selectedPurchase, setSelectedPurchase] = useState<any | null>(null)
+  const [detailOpen, setDetailOpen] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!user?.id) return
@@ -72,7 +87,7 @@ export default function ConsumerDashboard() {
           .filter((c: any) => c.type === 'combustivel' && c.status === 'pending')
           .reduce((s: number, c: any) => s + (c.amount_generated || 0), 0),
       })
-      setPurchases(purchaseRecords.slice(0, 3))
+      setPurchases(purchaseRecords.slice(0, 5))
       setBanners(bannerRecords)
     } catch {
       /* intentionally ignored */
@@ -104,6 +119,11 @@ export default function ConsumerDashboard() {
     setPurchaseAmount('')
   }
 
+  const handlePurchaseClick = (tx: any) => {
+    setSelectedPurchase(tx)
+    setDetailOpen(true)
+  }
+
   if (loading)
     return (
       <div className="space-y-4">
@@ -129,7 +149,11 @@ export default function ConsumerDashboard() {
             </p>
             <div className="mt-4 flex gap-2">
               <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild></DialogTrigger>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" className="w-full">
+                    <ScanLine className="mr-2 h-4 w-4" /> Usar Cashback
+                  </Button>
+                </DialogTrigger>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Utilizar Cashback de Loja</DialogTitle>
@@ -227,42 +251,57 @@ export default function ConsumerDashboard() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {purchases.length === 0 && (
-              <p className="text-muted-foreground text-sm">Nenhuma transação encontrada.</p>
-            )}
-            {purchases.map((tx) => (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between border-b last:border-0 pb-4 last:pb-0"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                    {(tx.origin_channel || '').includes('posto') ? (
-                      <Fuel className="h-5 w-5" />
-                    ) : (
-                      <Store className="h-5 w-5" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(tx.purchase_date || tx.created)}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold text-emerald-600">
-                    {formatBRL(tx.total_amount || 0)}
-                  </p>
-                  <p className="text-[10px] uppercase font-semibold text-muted-foreground">
-                    {tx.status}
-                  </p>
-                </div>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Receipt className="h-10 w-10 text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground text-sm">Nenhuma transação encontrada.</p>
               </div>
-            ))}
+            )}
+            {purchases.map((tx) => {
+              const isFuel = (tx.origin_channel || '').includes('posto')
+              const channelLabel = isFuel ? 'Combustível' : 'Loja'
+              return (
+                <button
+                  key={tx.id}
+                  onClick={() => handlePurchaseClick(tx)}
+                  className="flex items-center justify-between w-full border rounded-lg p-3 text-left transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                        isFuel ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'
+                      }`}
+                    >
+                      {isFuel ? <Fuel className="h-5 w-5" /> : <Store className="h-5 w-5" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{channelLabel}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(tx.purchase_date || tx.created)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-emerald-600">
+                      {formatBRL(tx.total_amount || 0)}
+                    </p>
+                    <Badge variant={STATUS_VARIANTS[tx.status] || 'secondary'} className="mt-0.5">
+                      {STATUS_LABELS[tx.status] || tx.status}
+                    </Badge>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </CardContent>
       </Card>
+
+      <PurchaseDetailDialog
+        purchase={selectedPurchase}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   )
 }
