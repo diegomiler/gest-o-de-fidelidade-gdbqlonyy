@@ -24,7 +24,7 @@ import { getCashbackByUser } from '@/services/cashback'
 import { getPurchases } from '@/services/purchases'
 import { getBanners } from '@/services/banners'
 import { getCashbackRules } from '@/services/settings'
-import { formatBRL, formatDate, bannerImage } from '@/lib/format'
+import { formatBRL, formatDate, bannerImage, calculatePurchaseTotal } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
 
 interface Balance {
@@ -284,7 +284,7 @@ export default function ConsumerDashboard() {
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-emerald-600">
-                      {formatBRL(tx.total_amount || 0)}
+                      {formatBRL(calculatePurchaseTotal(tx))}
                     </p>
                     <Badge variant={STATUS_VARIANTS[tx.status] || 'secondary'} className="mt-0.5">
                       {STATUS_LABELS[tx.status] || tx.status}

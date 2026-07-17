@@ -46,3 +46,38 @@ export function bannerImage(banner: any): string {
 export function partnerLogo(partner: any): string {
   return `https://img.usecurling.com/i?q=${encodeURIComponent(partner?.name?.slice(0, 15) || 'gas')}`
 }
+
+interface PurchaseItem {
+  name: string
+  qty: number
+  price: number
+}
+
+function parseItems(raw: any): PurchaseItem[] {
+  if (Array.isArray(raw)) return raw
+  if (typeof raw === 'string' && raw) {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+  return []
+}
+
+export function calculatePurchaseTotal(purchase: any): number {
+  const items = parseItems(purchase?.items)
+  if (items.length > 0) {
+    const calculated = items.reduce(
+      (sum, item) =>
+        sum +
+        (typeof item.qty === 'number' && typeof item.price === 'number'
+          ? item.qty * item.price
+          : 0),
+      0,
+    )
+    if (calculated > 0) return calculated
+  }
+  return purchase?.total_amount || 0
+}

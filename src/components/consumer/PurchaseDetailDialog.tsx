@@ -9,7 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { formatBRL, formatDateTime } from '@/lib/format'
+import { formatBRL, formatDateTime, calculatePurchaseTotal } from '@/lib/format'
 
 interface PurchaseItem {
   name: string
@@ -43,7 +43,7 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
   const calculatedTotal = items.reduce((sum, item) => sum + item.qty * item.price, 0)
   const hasItems = items.length > 0
   const storedTotal = purchase.total_amount || 0
-  const displayTotal = hasItems ? calculatedTotal : storedTotal
+  const displayTotal = calculatePurchaseTotal(purchase)
   const hasDivergence = hasItems && Math.abs(calculatedTotal - storedTotal) > 0.01
 
   return (
