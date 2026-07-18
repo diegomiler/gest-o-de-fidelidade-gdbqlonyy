@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  FileJson,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -23,6 +24,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
@@ -30,6 +32,7 @@ import {
   getAdminSales,
   releaseCashback,
   releaseCashbackBatch,
+  importSale,
   type AdminSale,
 } from '@/services/admin'
 import { getCashbackRules, type CashbackRules } from '@/services/settings'
@@ -103,6 +106,25 @@ export default function AdminSales() {
   const [sortField, setSortField] = useState<'date' | 'total_amount'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [importOpen, setImportOpen] = useState(false)
+  const [importJson, setImportJson] = useState(
+    JSON.stringify(
+      {
+        event: 'sale_created',
+        timestamp: new Date().toISOString(),
+        data: {
+          transactionId: 'SALE-003',
+          customerName: 'Diego Miler',
+          customerCpf: '123.456.789-00',
+          totalAmount: 848.8,
+          status: 'pending',
+        },
+      },
+      null,
+      2,
+    ),
+  )
+  const [importing, setImporting] = useState(false)
   const { toast } = useToast()
 
   const loadData = useCallback(async () => {
@@ -131,8 +153,8 @@ export default function AdminSales() {
     () =>
       sales.map((s) => ({
         ...s,
-        cb_store: calcCashback(s.total_amount, rules.store_percent),
-        cb_fuel: calcCashback(s.total_amount, rules.fuel_percent),
+        cb_store: s.cb_store || calcCashback(s.total_amount, rules.store_percent),
+        cb_fuel: s.cb_fuel || calcCashback(s.total_amount, rules.fuel_percent),
       })),
     [sales, rules],
   )
@@ -214,6 +236,25 @@ export default function AdminSales() {
     }
   }
 
+  const handleImport = async () => {
+    try {
+      const payload = JSON.parse(importJson)
+      setImporting(true)
+      const result = await importSale(payload)
+      toast({ title: result.message || 'Venda importada com sucesso!' })
+      setImportOpen(false)
+      loadData()
+    } catch (err) {
+      if (err instanceof SyntaxError) {
+        toast({ title: 'JSON inválido', variant: 'destructive' })
+      } else {
+        toast({ title: 'Erro ao importar venda', variant: 'destructive' })
+      }
+    } finally {
+      setImporting(false)
+    }
+  }
+
   if (loading)
     return (
       <div className="space-y-4">
@@ -232,6 +273,10 @@ export default function AdminSales() {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setImportOpen(true)} className="shrink-0">
+            <FileJson className="h-4 w-4 mr-1" />
+            Importar
+          </Button>
           <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -364,6 +409,33 @@ export default function AdminSales() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={importOpen} onOpenChange={(o) => !o && setImportOpen(false)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar Venda (JSON)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Cole o JSON da venda no formato simplificado (sem campos de cashback). Os valores de
+              cashback serão calculados automaticamente.
+            </p>
+            <Textarea
+              className="font-mono text-xs min-h-[300px]"
+              value={importJson}
+              onChange={(e) => setImportJson(e.target.value)}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setImportOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleImport} disabled={importing}>
+                {importing ? 'Importando...' : 'Importar Venda'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!selectedAudit} onOpenChange={(o) => !o && setSelectedAudit(null)}>
         <DialogContent>

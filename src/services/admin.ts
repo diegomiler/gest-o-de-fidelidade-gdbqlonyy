@@ -80,3 +80,24 @@ export const releaseCashbackBatch = (cashbackIds: string[]): Promise<BatchReleas
     body: JSON.stringify({ cashback_ids: cashbackIds }),
     headers: { 'Content-Type': 'application/json' },
   })
+
+export interface ImportSalePayload {
+  event?: string
+  timestamp?: string
+  data: {
+    transactionId?: string
+    customerName?: string
+    customerCpf: string
+    totalAmount: number
+    status?: string
+  }
+}
+
+export const importSale = (
+  payload: ImportSalePayload,
+): Promise<{ success: boolean; id: string; message: string }> =>
+  pb.send('/backend/v1/import/sale', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' },
+  })

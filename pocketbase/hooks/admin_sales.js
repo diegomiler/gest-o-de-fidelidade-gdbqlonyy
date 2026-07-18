@@ -55,6 +55,7 @@ routerAdd(
         cb_store: cbInfo.store,
         cb_fuel: cbInfo.fuel,
         status: p.getString('status') || 'pending',
+        cashback_records: cbInfo.records,
       })
     }
 
