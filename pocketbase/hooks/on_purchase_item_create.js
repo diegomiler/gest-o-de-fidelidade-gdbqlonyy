@@ -18,7 +18,9 @@ onRecordAfterCreateSuccess((e) => {
   )
   var total = 0
   for (var i = 0; i < items.length; i++) {
-    total += items[i].get('total_price') || 0
+    var qty = items[i].get('quantity') || 0
+    var price = items[i].get('unit_price') || 0
+    total += qty * price
   }
 
   var purchase = $app.findRecordById('purchases', purchaseId)
@@ -29,22 +31,26 @@ onRecordAfterCreateSuccess((e) => {
 
   var existingCb = $app.findRecordsByFilter('cashback', "purchase = '" + purchaseId + "'", '', 0, 0)
 
-  var storePercent = 10
-  var fuelPercent = 2
+  var storePercent = 0
+  var fuelPercent = 0
   var minPurchaseAmount = 0
+  var usingDefaults = true
   try {
     var setting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
     var rawValue = setting.get('value')
     var config = rawValue
     if (typeof config === 'string') config = JSON.parse(config)
     if (config) {
+      usingDefaults = false
       if (typeof config.store_percent === 'number') storePercent = config.store_percent
       if (typeof config.fuel_percent === 'number') fuelPercent = config.fuel_percent
       if (typeof config.min_purchase_amount === 'number')
         minPurchaseAmount = config.min_purchase_amount
     }
   } catch (err) {
-    $app.logger().warn('cashback rules not found, using defaults', 'error', err.message)
+    $app
+      .logger()
+      .warn('cashback rules not found in settings, using 0% defaults', 'error', err.message)
   }
 
   if (total < minPurchaseAmount) return e.next()
@@ -63,6 +69,10 @@ onRecordAfterCreateSuccess((e) => {
 
     try {
       var cashbackCol = $app.findCollectionByNameOrId('cashback')
+      var noteText = usingDefaults
+        ? 'Cashback calculado com valores padrão (0%) - configuracao nao encontrada'
+        : ''
+
       if (storeCashback > 0) {
         var storeRecord = new Record(cashbackCol)
         storeRecord.set('client', clientId)
@@ -73,6 +83,7 @@ onRecordAfterCreateSuccess((e) => {
         storeRecord.set('amount_used', 0)
         storeRecord.set('status', 'pending')
         storeRecord.set('released_at', releasedAt.toISOString())
+        if (noteText) storeRecord.set('notes', noteText)
         $app.save(storeRecord)
       }
       if (fuelCashback > 0) {
@@ -85,6 +96,7 @@ onRecordAfterCreateSuccess((e) => {
         fuelRecord.set('amount_used', 0)
         fuelRecord.set('status', 'pending')
         fuelRecord.set('released_at', releasedAt.toISOString())
+        if (noteText) fuelRecord.set('notes', noteText)
         $app.save(fuelRecord)
       }
     } catch (err) {
@@ -93,6 +105,9 @@ onRecordAfterCreateSuccess((e) => {
         .error('cashback generation failed', 'purchaseId', purchaseId, 'error', err.message)
     }
   } else {
+    var updateNoteText = usingDefaults
+      ? 'Cashback recalculado com valores padrão (0%) - configuracao nao encontrada'
+      : ''
     for (var ci = 0; ci < existingCb.length; ci++) {
       var cb = existingCb[ci]
       if (cb.getString('status') !== 'pending') continue
@@ -103,6 +118,7 @@ onRecordAfterCreateSuccess((e) => {
       var usedAmount = cb.get('amount_used') || 0
       cb.set('amount_generated', newAmount)
       cb.set('amount_available', newAmount - usedAmount)
+      if (updateNoteText) cb.set('notes', updateNoteText)
       $app.save(cb)
     }
   }
