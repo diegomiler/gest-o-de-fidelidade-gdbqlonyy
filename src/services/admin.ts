@@ -9,6 +9,13 @@ export interface AdminStats {
   topClients: Array<{ id: string; name: string; avatar: string; total: number; purchases: number }>
 }
 
+export interface CashbackRecordInfo {
+  id: string
+  type: string
+  status: string
+  amount_generated: number
+}
+
 export interface AdminSale {
   id: string
   api_sale_id: string
@@ -19,6 +26,20 @@ export interface AdminSale {
   cb_store: number
   cb_fuel: number
   status: string
+  cashback_records: CashbackRecordInfo[]
+}
+
+export interface ReleaseResult {
+  success: boolean
+  id: string
+  status: string
+  released_at: string
+}
+
+export interface BatchReleaseResult {
+  success: boolean
+  released: string[]
+  skipped: Array<{ id: string; reason: string }>
 }
 
 export interface AdminCustomer {
@@ -45,3 +66,17 @@ export const getAdminSales = (): Promise<{ sales: AdminSale[] }> =>
 
 export const getAdminCustomers = (): Promise<{ customers: AdminCustomer[] }> =>
   pb.send('/backend/v1/admin/customers', { method: 'GET' })
+
+export const releaseCashback = (cashbackId: string): Promise<ReleaseResult> =>
+  pb.send('/backend/v1/cashback/release', {
+    method: 'POST',
+    body: JSON.stringify({ cashback_id: cashbackId }),
+    headers: { 'Content-Type': 'application/json' },
+  })
+
+export const releaseCashbackBatch = (cashbackIds: string[]): Promise<BatchReleaseResult> =>
+  pb.send('/backend/v1/cashback/release-batch', {
+    method: 'POST',
+    body: JSON.stringify({ cashback_ids: cashbackIds }),
+    headers: { 'Content-Type': 'application/json' },
+  })

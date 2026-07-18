@@ -11,7 +11,7 @@ routerAdd(
       var pid = cb.getString('purchase')
       if (!pid) continue
       if (!cashbackByPurchase[pid]) {
-        cashbackByPurchase[pid] = { store: 0, fuel: 0 }
+        cashbackByPurchase[pid] = { store: 0, fuel: 0, records: [] }
       }
       var amount = cb.get('amount_generated') || 0
       if (cb.getString('type') === 'loja') {
@@ -19,6 +19,12 @@ routerAdd(
       } else if (cb.getString('type') === 'combustivel') {
         cashbackByPurchase[pid].fuel += amount
       }
+      cashbackByPurchase[pid].records.push({
+        id: cb.id,
+        type: cb.getString('type'),
+        status: cb.getString('status'),
+        amount_generated: amount,
+      })
     }
 
     var sales = []
@@ -37,7 +43,7 @@ routerAdd(
       }
 
       var pid = p.id
-      var cbInfo = cashbackByPurchase[pid] || { store: 0, fuel: 0 }
+      var cbInfo = cashbackByPurchase[pid] || { store: 0, fuel: 0, records: [] }
 
       sales.push({
         id: p.id,
@@ -49,6 +55,7 @@ routerAdd(
         cb_store: cbInfo.store,
         cb_fuel: cbInfo.fuel,
         status: p.getString('status') || 'pending',
+        cashback_records: cbInfo.records || [],
       })
     }
 

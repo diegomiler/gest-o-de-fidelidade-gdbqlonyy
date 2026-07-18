@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Search, Code, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+import { Search, Code, ArrowUpDown, ArrowUp, ArrowDown, Unlock } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -12,9 +12,16 @@ import {
 } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
-import { getAdminSales, type AdminSale } from '@/services/admin'
+import { useToast } from '@/hooks/use-toast'
+import {
+  getAdminSales,
+  releaseCashback,
+  releaseCashbackBatch,
+  type AdminSale,
+} from '@/services/admin'
 import { getCashbackRules, type CashbackRules } from '@/services/settings'
 import { formatBRL, formatDateTime } from '@/lib/format'
 
@@ -30,6 +37,10 @@ function calcCashback(total: number, percent: number): number {
   return (total || 0) * ((percent || 0) / 100)
 }
 
+function getPendingIds(sale: AdminSale): string[] {
+  return (sale.cashback_records || []).filter((r) => r.status === 'pending').map((r) => r.id)
+}
+
 export default function AdminSales() {
   const [sales, setSales] = useState<AdminSale[]>([])
   const [rules, setRules] = useState<CashbackRules>(DEFAULT_RULES)
@@ -38,6 +49,8 @@ export default function AdminSales() {
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState<'date' | 'total_amount'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const { toast } = useToast()
 
   const loadData = useCallback(async () => {
     try {
@@ -58,15 +71,18 @@ export default function AdminSales() {
     loadData()
   }, [loadData])
   useRealtime('purchases', () => loadData())
+  useRealtime('cashback', () => loadData())
   useRealtime('settings', () => loadData())
 
-  const salesWithCalc = useMemo(() => {
-    return sales.map((s) => ({
-      ...s,
-      cb_store: calcCashback(s.total_amount, rules.store_percent),
-      cb_fuel: calcCashback(s.total_amount, rules.fuel_percent),
-    }))
-  }, [sales, rules])
+  const salesWithCalc = useMemo(
+    () =>
+      sales.map((s) => ({
+        ...s,
+        cb_store: calcCashback(s.total_amount, rules.store_percent),
+        cb_fuel: calcCashback(s.total_amount, rules.fuel_percent),
+      })),
+    [sales, rules],
+  )
 
   const filtered = useMemo(() => {
     let result = salesWithCalc
@@ -80,12 +96,10 @@ export default function AdminSales() {
       )
     }
     result = [...result].sort((a, b) => {
-      let cmp = 0
-      if (sortField === 'total_amount') {
-        cmp = (a.total_amount || 0) - (b.total_amount || 0)
-      } else {
-        cmp = new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime()
-      }
+      const cmp =
+        sortField === 'total_amount'
+          ? (a.total_amount || 0) - (b.total_amount || 0)
+          : new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime()
       return sortDir === 'desc' ? -cmp : cmp
     })
     return result
@@ -93,7 +107,7 @@ export default function AdminSales() {
 
   const toggleSort = (field: 'date' | 'total_amount') => {
     if (sortField === field) {
-      setSortDir((prev) => (prev === 'desc' ? 'asc' : 'desc'))
+      setSortDir((p) => (p === 'desc' ? 'asc' : 'desc'))
     } else {
       setSortField(field)
       setSortDir('desc')
@@ -107,6 +121,51 @@ export default function AdminSales() {
     ) : (
       <ArrowUp className="ml-1 inline h-3 w-3" />
     )
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length
+  const someSelected = selectedIds.size > 0 && !allSelected
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(filtered.map((s) => s.id)))
+  }
+
+  const handleRelease = async (ids: string[]) => {
+    if (ids.length === 0) return
+    try {
+      if (ids.length === 1) {
+        await releaseCashback(ids[0])
+      } else {
+        await releaseCashbackBatch(ids)
+      }
+      toast({ title: 'Cashback liberado com sucesso!' })
+    } catch {
+      toast({ title: 'Erro ao liberar cashback', variant: 'destructive' })
+    }
+  }
+
+  const handleBatchRelease = async () => {
+    const ids = filtered.filter((s) => selectedIds.has(s.id)).flatMap((s) => getPendingIds(s))
+    if (ids.length === 0) {
+      toast({ title: 'Nenhum cashback pendente selecionado', variant: 'destructive' })
+      return
+    }
+    try {
+      const result = await releaseCashbackBatch(ids)
+      toast({ title: `${result.released.length} cashback(s) liberado(s)!` })
+      setSelectedIds(new Set())
+    } catch {
+      toast({ title: 'Erro ao liberar cashbacks', variant: 'destructive' })
+    }
   }
 
   if (loading)
@@ -126,14 +185,22 @@ export default function AdminSales() {
             Loja: {rules.store_percent}% | Combustível: {rules.fuel_percent}%
           </p>
         </div>
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar CPF, nome, ID..."
-            className="pl-8"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar CPF, nome, ID..."
+              className="pl-8"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          {selectedIds.size > 0 && (
+            <Button onClick={handleBatchRelease} className="shrink-0">
+              <Unlock className="h-4 w-4 mr-1" />
+              Liberar Selecionados
+            </Button>
+          )}
         </div>
       </div>
 
@@ -142,6 +209,12 @@ export default function AdminSales() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]">
+                  <Checkbox
+                    checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
                 <TableHead>
                   <button
                     className="inline-flex items-center hover:text-foreground transition-colors"
@@ -162,47 +235,88 @@ export default function AdminSales() {
                 <TableHead className="text-right">CB Loja</TableHead>
                 <TableHead className="text-right">CB Comb.</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-[80px]">Audit</TableHead>
+                <TableHead className="w-[120px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhuma venda encontrada.
                   </TableCell>
                 </TableRow>
               )}
-              {filtered.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell className="text-xs">{formatDateTime(sale.date)}</TableCell>
-                  <TableCell>
-                    <div className="font-medium text-sm">{sale.client_name || '—'}</div>
-                    <div className="text-xs text-muted-foreground">{sale.client_cpf || '—'}</div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatBRL(sale.total_amount)}
-                  </TableCell>
-                  <TableCell className="text-right text-primary">
-                    {formatBRL(sale.cb_store)}
-                  </TableCell>
-                  <TableCell className="text-right text-amber-600">
-                    {formatBRL(sale.cb_fuel)}
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`inline-flex px-2 py-1 text-[10px] uppercase font-bold rounded-full ${sale.cb_store > 0 || sale.cb_fuel > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}
-                    >
-                      {sale.cb_store > 0 || sale.cb_fuel > 0 ? 'Processado' : 'Sem Cashback'}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedAudit(sale)}>
-                      <Code className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filtered.map((sale) => {
+                const pendingIds = getPendingIds(sale)
+                const hasCashback = sale.cb_store > 0 || sale.cb_fuel > 0
+                return (
+                  <TableRow
+                    key={sale.id}
+                    data-state={selectedIds.has(sale.id) ? 'selected' : undefined}
+                  >
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(sale.id)}
+                        onCheckedChange={() => toggleSelect(sale.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-xs">{formatDateTime(sale.date)}</TableCell>
+                    <TableCell>
+                      <div className="font-medium text-sm">{sale.client_name || '—'}</div>
+                      <div className="text-xs text-muted-foreground">{sale.client_cpf || '—'}</div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatBRL(sale.total_amount)}
+                    </TableCell>
+                    <TableCell className="text-right text-primary">
+                      {formatBRL(sale.cb_store)}
+                    </TableCell>
+                    <TableCell className="text-right text-amber-600">
+                      {formatBRL(sale.cb_fuel)}
+                    </TableCell>
+                    <TableCell>
+                      <span
+                        className={`inline-flex px-2 py-1 text-[10px] uppercase font-bold rounded-full ${
+                          pendingIds.length > 0
+                            ? 'bg-amber-100 text-amber-700'
+                            : hasCashback
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {pendingIds.length > 0
+                          ? 'Pendente'
+                          : hasCashback
+                            ? 'Liberado'
+                            : 'Sem Cashback'}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        {pendingIds.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleRelease(pendingIds)}
+                          >
+                            <Unlock className="h-3 w-3 mr-1" />
+                            Liberar
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => setSelectedAudit(sale)}
+                        >
+                          <Code className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -229,6 +343,7 @@ export default function AdminSales() {
                     storePercent: rules.store_percent,
                     fuelPercent: rules.fuel_percent,
                     status: selectedAudit?.status,
+                    cashbackRecords: selectedAudit?.cashback_records,
                   },
                 },
                 null,
