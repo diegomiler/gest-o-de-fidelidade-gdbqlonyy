@@ -19,8 +19,11 @@ routerAdd(
       )
     }
 
+    var amountGenerated = record.get('amount_generated') || 0
+    var amountUsed = record.get('amount_used') || 0
     record.set('status', 'released')
     record.set('released_at', new Date().toISOString())
+    record.set('amount_available', amountGenerated - amountUsed)
     $app.save(record)
 
     var purchaseId = record.getString('purchase')

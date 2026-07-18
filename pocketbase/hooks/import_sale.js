@@ -25,6 +25,16 @@ routerAdd(
       return e.badRequestError('customerCpf is required')
     }
 
+    try {
+      $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
+    } catch (_) {
+      $app
+        .logger()
+        .warn(
+          'cashback_rules not found in settings — purchase will be imported without cashback generation',
+        )
+    }
+
     var userId = ''
     if (rawCpf) {
       try {

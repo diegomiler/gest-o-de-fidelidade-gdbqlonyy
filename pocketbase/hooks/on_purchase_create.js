@@ -10,9 +10,7 @@ onRecordAfterCreateSuccess((e) => {
   var totalAmount = 0
   if (items.length > 0) {
     for (var i = 0; i < items.length; i++) {
-      var qty = items[i].get('quantity') || 0
-      var price = items[i].get('unit_price') || 0
-      totalAmount += qty * price
+      totalAmount += (items[i].get('quantity') || 0) * (items[i].get('unit_price') || 0)
     }
     if (totalAmount !== (purchase.get('total_amount') || 0)) {
       try {
@@ -34,9 +32,7 @@ onRecordAfterCreateSuccess((e) => {
     var setting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
     var rawValue = setting.get('value')
     var config = rawValue
-    if (typeof config === 'string') {
-      config = JSON.parse(config)
-    }
+    if (typeof config === 'string') config = JSON.parse(config)
     if (config) {
       usingDefaults = false
       if (typeof config.store_percent === 'number') storePercent = config.store_percent
@@ -52,16 +48,49 @@ onRecordAfterCreateSuccess((e) => {
 
   if (totalAmount < minPurchaseAmount) return e.next()
 
-  var storeCashback = totalAmount * (storePercent / 100)
-  var fuelCashback = totalAmount * (fuelPercent / 100)
+  var originChannel = (purchase.getString('origin_channel') || '').toLowerCase()
+  var fuelKeywords = [
+    'combustivel',
+    'combustível',
+    'fuel',
+    'gasolina',
+    'gas',
+    'diesel',
+    'etanol',
+    'alcool',
+    'álcool',
+    'gnv',
+    'posto',
+  ]
+  var isFuel = false
+  for (var fk = 0; fk < fuelKeywords.length; fk++) {
+    if (originChannel.indexOf(fuelKeywords[fk]) !== -1) {
+      isFuel = true
+      break
+    }
+  }
+  if (!isFuel) {
+    for (var fi = 0; fi < items.length; fi++) {
+      var itemText = (
+        (items[fi].get('name') || '') +
+        ' ' +
+        (items[fi].get('product_code') || '')
+      ).toLowerCase()
+      for (var fk2 = 0; fk2 < fuelKeywords.length; fk2++) {
+        if (itemText.indexOf(fuelKeywords[fk2]) !== -1) {
+          isFuel = true
+          break
+        }
+      }
+      if (isFuel) break
+    }
+  }
 
-  if (storeCashback <= 0 && fuelCashback <= 0) return e.next()
+  var cashbackType = isFuel ? 'combustivel' : 'loja'
+  var cashbackPercent = isFuel ? fuelPercent : storePercent
+  var cashbackAmount = totalAmount * (cashbackPercent / 100)
 
-  var dateStr = purchase.getString('purchase_date') || purchase.getString('created') || ''
-  var purchaseDate = new Date(dateStr)
-  var releasedAt = new Date(
-    Date.UTC(purchaseDate.getUTCFullYear(), purchaseDate.getUTCMonth() + 1, 1),
-  )
+  if (cashbackAmount <= 0) return e.next()
 
   var clientId = purchase.getString('client')
   if (!clientId) return e.next()
@@ -75,33 +104,16 @@ onRecordAfterCreateSuccess((e) => {
       ? 'Cashback calculado com valores padrão (0%) - configuracao nao encontrada'
       : ''
 
-    if (storeCashback > 0) {
-      var storeRecord = new Record(cashbackCol)
-      storeRecord.set('client', clientId)
-      storeRecord.set('purchase', purchaseId)
-      storeRecord.set('type', 'loja')
-      storeRecord.set('amount_generated', storeCashback)
-      storeRecord.set('amount_available', storeCashback)
-      storeRecord.set('amount_used', 0)
-      storeRecord.set('status', 'pending')
-      storeRecord.set('released_at', releasedAt.toISOString())
-      if (noteText) storeRecord.set('notes', noteText)
-      $app.save(storeRecord)
-    }
-
-    if (fuelCashback > 0) {
-      var fuelRecord = new Record(cashbackCol)
-      fuelRecord.set('client', clientId)
-      fuelRecord.set('purchase', purchaseId)
-      fuelRecord.set('type', 'combustivel')
-      fuelRecord.set('amount_generated', fuelCashback)
-      fuelRecord.set('amount_available', fuelCashback)
-      fuelRecord.set('amount_used', 0)
-      fuelRecord.set('status', 'pending')
-      fuelRecord.set('released_at', releasedAt.toISOString())
-      if (noteText) fuelRecord.set('notes', noteText)
-      $app.save(fuelRecord)
-    }
+    var record = new Record(cashbackCol)
+    record.set('client', clientId)
+    record.set('purchase', purchaseId)
+    record.set('type', cashbackType)
+    record.set('amount_generated', cashbackAmount)
+    record.set('amount_available', 0)
+    record.set('amount_used', 0)
+    record.set('status', 'pending')
+    if (noteText) record.set('notes', noteText)
+    $app.save(record)
   } catch (err) {
     $app
       .logger()
