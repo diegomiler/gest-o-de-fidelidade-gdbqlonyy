@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, type HTMLAttributes } from 'react'
 import {
   Search,
   Code,
@@ -49,13 +49,14 @@ function SortIcon({
   field,
   sortField,
   sortDir,
+  ...rest
 }: {
   field: SortField
   sortField: SortField
   sortDir: 'asc' | 'desc'
-}) {
+} & HTMLAttributes<HTMLSpanElement>) {
   return (
-    <span className="ml-1 inline-flex items-center">
+    <span {...rest} className="ml-1 inline-flex items-center">
       {sortField !== field ? (
         <ArrowUpDown className="h-3 w-3 opacity-50" />
       ) : sortDir === 'desc' ? (
@@ -261,22 +262,22 @@ export default function AdminSales() {
                   />
                 </TableHead>
                 <TableHead>
-                  <button
-                    className="inline-flex items-center hover:text-foreground transition-colors"
+                  <span
+                    className="inline-flex items-center hover:text-foreground transition-colors cursor-pointer select-none"
                     onClick={() => toggleSort('date')}
                   >
                     Data <SortIcon field="date" sortField={sortField} sortDir={sortDir} />
-                  </button>
+                  </span>
                 </TableHead>
                 <TableHead>Cliente / CPF</TableHead>
                 <TableHead className="text-right">
-                  <button
-                    className="inline-flex items-center hover:text-foreground transition-colors"
+                  <span
+                    className="inline-flex items-center hover:text-foreground transition-colors cursor-pointer select-none"
                     onClick={() => toggleSort('total_amount')}
                   >
                     Valor (R$){' '}
                     <SortIcon field="total_amount" sortField={sortField} sortDir={sortDir} />
-                  </button>
+                  </span>
                 </TableHead>
                 <TableHead className="text-right">CB Loja</TableHead>
                 <TableHead className="text-right">CB Comb.</TableHead>
