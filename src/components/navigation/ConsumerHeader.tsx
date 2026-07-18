@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getReleasedCashbackByUser } from '@/services/cashback'
-import { formatBRLPlain } from '@/lib/format'
+import { formatBRL } from '@/lib/format'
 import pb from '@/lib/pocketbase/client'
 
 const PB_URL = import.meta.env.VITE_POCKETBASE_URL
@@ -91,19 +91,19 @@ export function ConsumerHeader() {
               <Store className="h-4 w-4 text-primary" />
               <span className="text-xs font-medium text-muted-foreground">Loja:</span>
               {balanceLoading ? (
-                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-16" />
               ) : (
-                <span className="font-semibold text-sm">R$ {formatBRLPlain(balance.store)}</span>
+                <span className="font-semibold text-sm">{formatBRL(balance.store)}</span>
               )}
             </div>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 rounded-full">
               <Fuel className="h-4 w-4 text-amber-600" />
               <span className="text-xs font-medium text-amber-700/80">Postos:</span>
               {balanceLoading ? (
-                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-16" />
               ) : (
                 <span className="font-semibold text-sm text-amber-700">
-                  R$ {formatBRLPlain(balance.fuel)}
+                  {formatBRL(balance.fuel)}
                 </span>
               )}
             </div>
@@ -112,16 +112,16 @@ export function ConsumerHeader() {
           <div className="flex md:hidden items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 rounded-full">
             <Store className="h-3.5 w-3.5 text-primary" />
             {balanceLoading ? (
-              <Skeleton className="h-3 w-8" />
+              <Skeleton className="h-3 w-12" />
             ) : (
-              <span className="font-semibold text-xs">{formatBRLPlain(balance.store)}</span>
+              <span className="font-semibold text-xs">{formatBRL(balance.store)}</span>
             )}
             <Fuel className="h-3.5 w-3.5 text-amber-600 ml-1" />
             {balanceLoading ? (
-              <Skeleton className="h-3 w-8" />
+              <Skeleton className="h-3 w-12" />
             ) : (
               <span className="font-semibold text-xs text-amber-700">
-                {formatBRLPlain(balance.fuel)}
+                {formatBRL(balance.fuel)}
               </span>
             )}
           </div>
