@@ -47,38 +47,6 @@ export function partnerLogo(partner: any): string {
   return `https://img.usecurling.com/i?q=${encodeURIComponent(partner?.name?.slice(0, 15) || 'gas')}`
 }
 
-interface PurchaseItem {
-  name?: string
-  quantity?: number
-  unit_price?: number
-  qty?: number
-  price?: number
-}
-
-function parseItems(raw: any): PurchaseItem[] {
-  if (Array.isArray(raw)) return raw
-  if (typeof raw === 'string' && raw) {
-    try {
-      const parsed = JSON.parse(raw)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
-  }
-  return []
-}
-
-function itemTotal(item: PurchaseItem): number {
-  const qty = Number(item.quantity ?? item.qty) || 0
-  const unitPrice = Number(item.unit_price ?? item.price) || 0
-  return qty * unitPrice
-}
-
 export function calculatePurchaseTotal(purchase: any): number {
-  const items = parseItems(purchase?.items)
-  if (items.length > 0) {
-    const calculated = items.reduce((sum, item) => sum + itemTotal(item), 0)
-    if (calculated > 0) return calculated
-  }
   return purchase?.total_amount || 0
 }

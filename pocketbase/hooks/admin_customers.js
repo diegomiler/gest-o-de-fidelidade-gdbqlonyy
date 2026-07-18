@@ -15,27 +15,7 @@ routerAdd(
         var purchases = $app.findRecordsByFilter('purchases', "client = '" + u.id + "'", '', 0, 0)
         purchaseCount = purchases.length
         for (var j = 0; j < purchases.length; j++) {
-          var amount = Number(purchases[j].get('total_amount')) || 0
-          if (amount === 0) {
-            var itemsRaw = purchases[j].get('items')
-            if (itemsRaw) {
-              try {
-                var parsedItems = typeof itemsRaw === 'string' ? JSON.parse(itemsRaw) : itemsRaw
-                if (Array.isArray(parsedItems)) {
-                  var itemsTotal = 0
-                  for (var m = 0; m < parsedItems.length; m++) {
-                    var it = parsedItems[m]
-                    if (!it) continue
-                    var iq = Number(it.quantity != null ? it.quantity : it.qty) || 0
-                    var ip = Number(it.unit_price != null ? it.unit_price : it.price) || 0
-                    itemsTotal += iq * ip
-                  }
-                  if (itemsTotal > 0) amount = itemsTotal
-                }
-              } catch (_) {}
-            }
-          }
-          totalSpent += amount
+          totalSpent += Number(purchases[j].get('total_amount')) || 0
         }
       } catch (_) {}
 

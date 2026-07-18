@@ -1,119 +1,130 @@
-import { CreditCard, ShoppingBag, Calendar, AlertTriangle } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog'
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { formatBRL, formatDateTime, calculatePurchaseTotal } from '@/lib/format'
-
-interface PurchaseItem {
-  name: string
-  qty: number
-  price: number
-}
+import { getPurchaseItems, type PurchaseItem } from '@/services/purchase-items'
+import { formatBRL, formatDateTime } from '@/lib/format'
 
 interface PurchaseDetailDialogProps {
-  purchase: any | null
+  purchase: any
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-function parseItems(raw: any): PurchaseItem[] {
-  if (Array.isArray(raw)) return raw
-  if (typeof raw === 'string' && raw) {
-    try {
-      const parsed = JSON.parse(raw)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
-  }
-  return []
+const statusLabels: Record<
+  string,
+  { label: string; variant: 'default' | 'secondary' | 'destructive' }
+> = {
+  approved: { label: 'Aprovado', variant: 'default' },
+  pending: { label: 'Pendente', variant: 'secondary' },
+  canceled: { label: 'Cancelado', variant: 'destructive' },
 }
 
 export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseDetailDialogProps) {
-  if (!purchase) return null
+  const [items, setItems] = useState<PurchaseItem[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const items = parseItems(purchase.items)
-  const calculatedTotal = items.reduce((sum, item) => sum + item.qty * item.price, 0)
-  const hasItems = items.length > 0
-  const storedTotal = purchase.total_amount || 0
-  const displayTotal = calculatePurchaseTotal(purchase)
-  const hasDivergence = hasItems && Math.abs(calculatedTotal - storedTotal) > 0.01
+  const loadItems = useCallback(async () => {
+    if (!purchase?.id) return
+    setLoading(true)
+    try {
+      const data = await getPurchaseItems(purchase.id)
+      setItems(data)
+    } catch {
+      setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }, [purchase?.id])
+
+  useEffect(() => {
+    if (open && purchase?.id) {
+      loadItems()
+    }
+  }, [open, purchase?.id, loadItems])
+
+  const statusInfo = statusLabels[purchase?.status] || statusLabels.pending
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ShoppingBag className="h-5 w-5 text-primary" />
-            Detalhes da Compra
-          </DialogTitle>
-          <DialogDescription className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" />
-            {formatDateTime(purchase.purchase_date || purchase.created)}
-          </DialogDescription>
+          <DialogTitle>Detalhes da Compra</DialogTitle>
         </DialogHeader>
-
-        <ScrollArea className="max-h-[55vh] pr-4">
-          <div className="space-y-4">
-            {hasDivergence && null}
-
-            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2.5">
-              <span className="text-sm text-muted-foreground">Forma de Pagamento</span>
-              <Badge variant="secondary" className="gap-1">
-                <CreditCard className="h-3 w-3" />
-                {purchase.payment_method || 'Não informado'}
-              </Badge>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="text-muted-foreground">ID da Venda</p>
+              <p className="font-medium">{purchase?.api_sale_id || '—'}</p>
             </div>
-
-            <div className="space-y-1">
-              <h4 className="text-sm font-semibold">Itens</h4>
-              {items.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">
-                  Nenhum item detalhado disponível para esta compra.
-                </p>
-              ) : (
-                <div className="space-y-1">
-                  {items.map((item, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between gap-3 py-2.5 border-b last:border-0"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.qty} {item.qty === 1 ? 'unidade' : 'unidades'} ×{' '}
-                          {formatBRL(item.price)}
-                        </p>
-                      </div>
-                      <span className="text-sm font-semibold whitespace-nowrap">
-                        {formatBRL(item.qty * item.price)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+            <div>
+              <p className="text-muted-foreground">Data</p>
+              <p className="font-medium">
+                {purchase?.purchase_date ? formatDateTime(purchase.purchase_date) : '—'}
+              </p>
             </div>
-
-            <div className="flex items-center justify-between pt-3 border-t-2">
-              <span className="font-semibold">Total da Compra</span>
-              <div className="text-right">
-                <span
-                  className={`text-lg font-bold ${hasDivergence ? 'text-amber-600' : 'text-primary'}`}
-                >
-                  {formatBRL(displayTotal)}
-                </span>
-                {hasDivergence && null}
-              </div>
+            <div>
+              <p className="text-muted-foreground">Pagamento</p>
+              <p className="font-medium">{purchase?.payment_method || '—'}</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Status</p>
+              <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
             </div>
           </div>
-        </ScrollArea>
+
+          <div>
+            <h4 className="mb-2 text-sm font-semibold">Itens</h4>
+            {loading ? (
+              <Skeleton className="h-32" />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Item</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead className="text-right">Preço Unit.</TableHead>
+                    <TableHead className="text-right">Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                        Nenhum item encontrado.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {items.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="text-right">{item.quantity}</TableCell>
+                      <TableCell className="text-right">{formatBRL(item.unit_price)}</TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatBRL(item.total_price)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <div className="flex justify-end border-t pt-4">
+            <div className="text-right">
+              <p className="text-sm text-muted-foreground">Total da Compra</p>
+              <p className="text-2xl font-bold">{formatBRL(purchase?.total_amount || 0)}</p>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

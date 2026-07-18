@@ -1,32 +1,3 @@
-onRecordCreate((e) => {
-  var purchase = e.record
-  var rawItems = purchase.get('items')
-
-  var items = rawItems
-  if (typeof items === 'string') {
-    try {
-      items = JSON.parse(items)
-    } catch (_) {
-      items = null
-    }
-  }
-
-  var calculatedTotal = 0
-  if (Array.isArray(items) && items.length > 0) {
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i]
-      if (!item) continue
-      var qty = Number(item.quantity != null ? item.quantity : item.qty) || 0
-      var unitPrice = Number(item.unit_price != null ? item.unit_price : item.price) || 0
-      calculatedTotal += qty * unitPrice
-    }
-  }
-
-  purchase.set('total_amount', calculatedTotal)
-
-  e.next()
-}, 'purchases')
-
 onRecordAfterCreateSuccess((e) => {
   var purchase = e.record
   var totalAmount = purchase.get('total_amount') || 0
@@ -67,6 +38,15 @@ onRecordAfterCreateSuccess((e) => {
 
   var clientId = purchase.getString('client')
   if (!clientId) return e.next()
+
+  var existingCb = $app.findRecordsByFilter(
+    'cashback',
+    "purchase = '" + purchase.id + "'",
+    '',
+    1,
+    0,
+  )
+  if (existingCb.length > 0) return e.next()
 
   try {
     var cashbackCol = $app.findCollectionByNameOrId('cashback')
