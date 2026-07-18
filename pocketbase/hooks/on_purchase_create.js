@@ -2,6 +2,9 @@ onRecordAfterCreateSuccess((e) => {
   var purchase = e.record
   var purchaseId = purchase.id
 
+  var importOrigin = (purchase.getString('origin_channel') || '').toLowerCase()
+  if (importOrigin === 'import') return e.next()
+
   var items = []
   try {
     items = $app.findRecordsByFilter('purchase_items', "purchase = '" + purchaseId + "'", '', 0, 0)

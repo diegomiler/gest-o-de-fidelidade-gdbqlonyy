@@ -129,6 +129,60 @@ routerAdd(
         }
       }
 
+      var cbStorePercent = 0
+      var cbFuelPercent = 0
+      try {
+        var cbSetting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
+        var cbRawValue = cbSetting.get('value')
+        var cbConfig = cbRawValue
+        if (typeof cbConfig === 'string') cbConfig = JSON.parse(cbConfig)
+        if (cbConfig) {
+          if (typeof cbConfig.store_percent === 'number') cbStorePercent = cbConfig.store_percent
+          if (typeof cbConfig.fuel_percent === 'number') cbFuelPercent = cbConfig.fuel_percent
+        }
+      } catch (cbRuleErr) {
+        $app
+          .logger()
+          .warn('cashback_rules not found in settings during import', 'error', cbRuleErr.message)
+      }
+
+      var storeCashbackAmount = totalAmount * (cbStorePercent / 100)
+      var fuelCashbackAmount = totalAmount * (cbFuelPercent / 100)
+
+      try {
+        var cashbackCol = $app.findCollectionByNameOrId('cashback')
+
+        var storeCbRecord = new Record(cashbackCol)
+        storeCbRecord.set('client', userId)
+        storeCbRecord.set('purchase', purchase.id)
+        storeCbRecord.set('type', 'loja')
+        storeCbRecord.set('amount_generated', storeCashbackAmount)
+        storeCbRecord.set('amount_available', storeCashbackAmount)
+        storeCbRecord.set('amount_used', 0)
+        storeCbRecord.set('status', 'pending')
+        $app.save(storeCbRecord)
+
+        var fuelCbRecord = new Record(cashbackCol)
+        fuelCbRecord.set('client', userId)
+        fuelCbRecord.set('purchase', purchase.id)
+        fuelCbRecord.set('type', 'combustivel')
+        fuelCbRecord.set('amount_generated', fuelCashbackAmount)
+        fuelCbRecord.set('amount_available', fuelCashbackAmount)
+        fuelCbRecord.set('amount_used', 0)
+        fuelCbRecord.set('status', 'pending')
+        $app.save(fuelCbRecord)
+      } catch (cbCreateErr) {
+        $app
+          .logger()
+          .error(
+            'cashback generation failed during import',
+            'purchaseId',
+            purchase.id,
+            'error',
+            cbCreateErr.message,
+          )
+      }
+
       return e.json(200, {
         success: true,
         id: purchase.id,
