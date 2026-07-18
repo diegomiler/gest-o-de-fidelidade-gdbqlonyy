@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Search, Code, ArrowUpDown, ArrowUp, ArrowDown, Unlock } from 'lucide-react'
+import {
+  Search,
+  Code,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Unlock,
+  CheckCircle2,
+  Clock,
+  XCircle,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -37,8 +47,26 @@ function calcCashback(total: number, percent: number): number {
   return (total || 0) * ((percent || 0) / 100)
 }
 
-function getPendingIds(sale: AdminSale): string[] {
-  return (sale.cashback_records || []).filter((r) => r.status === 'pending').map((r) => r.id)
+function getCashbackIds(sale: AdminSale): string[] {
+  return (sale.cashback_records || []).map((r) => r.id)
+}
+
+const STATUS_CONFIG: Record<string, { label: string; className: string; icon: typeof Clock }> = {
+  pending: {
+    label: 'Pendente',
+    className: 'bg-amber-100 text-amber-700',
+    icon: Clock,
+  },
+  approved: {
+    label: 'Aprovado',
+    className: 'bg-emerald-100 text-emerald-700',
+    icon: CheckCircle2,
+  },
+  canceled: {
+    label: 'Cancelado',
+    className: 'bg-red-100 text-red-700',
+    icon: XCircle,
+  },
 }
 
 export default function AdminSales() {
@@ -154,9 +182,11 @@ export default function AdminSales() {
   }
 
   const handleBatchRelease = async () => {
-    const ids = filtered.filter((s) => selectedIds.has(s.id)).flatMap((s) => getPendingIds(s))
+    const ids = filtered
+      .filter((s) => selectedIds.has(s.id) && s.status === 'pending')
+      .flatMap((s) => getCashbackIds(s))
     if (ids.length === 0) {
-      toast({ title: 'Nenhum cashback pendente selecionado', variant: 'destructive' })
+      toast({ title: 'Nenhuma venda pendente selecionada', variant: 'destructive' })
       return
     }
     try {
@@ -247,8 +277,13 @@ export default function AdminSales() {
                 </TableRow>
               )}
               {filtered.map((sale) => {
-                const pendingIds = getPendingIds(sale)
-                const hasCashback = sale.cb_store > 0 || sale.cb_fuel > 0
+                const cashbackIds = getCashbackIds(sale)
+                const statusConfig = STATUS_CONFIG[sale.status] || {
+                  label: sale.status || '—',
+                  className: 'bg-slate-100 text-slate-600',
+                  icon: Clock,
+                }
+                const StatusIcon = statusConfig.icon
                 return (
                   <TableRow
                     key={sale.id}
@@ -276,29 +311,20 @@ export default function AdminSales() {
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex px-2 py-1 text-[10px] uppercase font-bold rounded-full ${
-                          pendingIds.length > 0
-                            ? 'bg-amber-100 text-amber-700'
-                            : hasCashback
-                              ? 'bg-emerald-100 text-emerald-700'
-                              : 'bg-slate-100 text-slate-600'
-                        }`}
+                        className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold rounded-full ${statusConfig.className}`}
                       >
-                        {pendingIds.length > 0
-                          ? 'Pendente'
-                          : hasCashback
-                            ? 'Liberado'
-                            : 'Sem Cashback'}
+                        <StatusIcon className="h-3 w-3" />
+                        {statusConfig.label}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {pendingIds.length > 0 && (
+                        {sale.status === 'pending' && cashbackIds.length > 0 && (
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-7 text-xs"
-                            onClick={() => handleRelease(pendingIds)}
+                            onClick={() => handleRelease(cashbackIds)}
                           >
                             <Unlock className="h-3 w-3 mr-1" />
                             Liberar

@@ -11,6 +11,7 @@ routerAdd(
     var released = []
     var skipped = []
     var now = new Date().toISOString()
+    var updatedPurchases = {}
 
     for (var i = 0; i < ids.length; i++) {
       try {
@@ -20,6 +21,28 @@ routerAdd(
           record.set('released_at', now)
           $app.save(record)
           released.push(ids[i])
+
+          var purchaseId = record.getString('purchase')
+          if (purchaseId && !updatedPurchases[purchaseId]) {
+            updatedPurchases[purchaseId] = true
+            try {
+              var purchase = $app.findRecordById('purchases', purchaseId)
+              if (purchase.getString('status') !== 'approved') {
+                purchase.set('status', 'approved')
+                $app.save(purchase)
+              }
+            } catch (pErr) {
+              $app
+                .logger()
+                .error(
+                  'failed to update purchase status in batch release',
+                  'purchaseId',
+                  purchaseId,
+                  'error',
+                  pErr.message,
+                )
+            }
+          }
         } else {
           skipped.push({ id: ids[i], reason: 'not pending' })
         }

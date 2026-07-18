@@ -23,6 +23,29 @@ routerAdd(
     record.set('released_at', new Date().toISOString())
     $app.save(record)
 
+    var purchaseId = record.getString('purchase')
+    if (purchaseId) {
+      try {
+        var purchase = $app.findRecordById('purchases', purchaseId)
+        if (purchase.getString('status') !== 'approved') {
+          purchase.set('status', 'approved')
+          $app.save(purchase)
+        }
+      } catch (err) {
+        $app
+          .logger()
+          .error(
+            'failed to update purchase status after cashback release',
+            'cashbackId',
+            cashbackId,
+            'purchaseId',
+            purchaseId,
+            'error',
+            err.message,
+          )
+      }
+    }
+
     return e.json(200, {
       success: true,
       id: cashbackId,
