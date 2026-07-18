@@ -15,10 +15,24 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getAdminSales, type AdminSale } from '@/services/admin'
+import { getCashbackRules, type CashbackRules } from '@/services/settings'
 import { formatBRL, formatDateTime } from '@/lib/format'
+
+const DEFAULT_RULES: CashbackRules = {
+  min_purchase_amount: 0,
+  store_percent: 0,
+  fuel_percent: 0,
+  min_redemption_amount: 0,
+  min_purchase_usage: 0,
+}
+
+function calcCashback(total: number, percent: number): number {
+  return (total || 0) * ((percent || 0) / 100)
+}
 
 export default function AdminSales() {
   const [sales, setSales] = useState<AdminSale[]>([])
+  const [rules, setRules] = useState<CashbackRules>(DEFAULT_RULES)
   const [loading, setLoading] = useState(true)
   const [selectedAudit, setSelectedAudit] = useState<AdminSale | null>(null)
   const [search, setSearch] = useState('')
@@ -27,8 +41,12 @@ export default function AdminSales() {
 
   const loadData = useCallback(async () => {
     try {
-      const { sales: data } = await getAdminSales()
-      setSales(data)
+      const [salesResult, rulesResult] = await Promise.all([
+        getAdminSales(),
+        getCashbackRules().catch(() => DEFAULT_RULES),
+      ])
+      setSales(salesResult.sales)
+      setRules(rulesResult)
     } catch {
       /* intentionally ignored */
     } finally {
@@ -40,9 +58,18 @@ export default function AdminSales() {
     loadData()
   }, [loadData])
   useRealtime('purchases', () => loadData())
+  useRealtime('settings', () => loadData())
+
+  const salesWithCalc = useMemo(() => {
+    return sales.map((s) => ({
+      ...s,
+      cb_store: calcCashback(s.total_amount, rules.store_percent),
+      cb_fuel: calcCashback(s.total_amount, rules.fuel_percent),
+    }))
+  }, [sales, rules])
 
   const filtered = useMemo(() => {
-    let result = sales
+    let result = salesWithCalc
     if (search) {
       const q = search.toLowerCase()
       result = result.filter(
@@ -62,7 +89,7 @@ export default function AdminSales() {
       return sortDir === 'desc' ? -cmp : cmp
     })
     return result
-  }, [sales, search, sortField, sortDir])
+  }, [salesWithCalc, search, sortField, sortDir])
 
   const toggleSort = (field: 'date' | 'total_amount') => {
     if (sortField === field) {
@@ -93,7 +120,12 @@ export default function AdminSales() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">Vendas API</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Vendas API</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Loja: {rules.store_percent}% | Combustível: {rules.fuel_percent}%
+          </p>
+        </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -152,10 +184,10 @@ export default function AdminSales() {
                     {formatBRL(sale.total_amount)}
                   </TableCell>
                   <TableCell className="text-right text-primary">
-                    {sale.cb_store > 0 ? `+${formatBRL(sale.cb_store)}` : '-'}
+                    {formatBRL(sale.cb_store)}
                   </TableCell>
                   <TableCell className="text-right text-amber-600">
-                    {sale.cb_fuel > 0 ? `+${formatBRL(sale.cb_fuel)}` : '-'}
+                    {formatBRL(sale.cb_fuel)}
                   </TableCell>
                   <TableCell>
                     <span
@@ -194,6 +226,8 @@ export default function AdminSales() {
                     totalAmount: selectedAudit?.total_amount,
                     cashbackStore: selectedAudit?.cb_store,
                     cashbackFuel: selectedAudit?.cb_fuel,
+                    storePercent: rules.store_percent,
+                    fuelPercent: rules.fuel_percent,
                     status: selectedAudit?.status,
                   },
                 },
