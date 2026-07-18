@@ -1,17 +1,10 @@
 migrate(
   (app) => {
-    var col = app.findCollectionByNameOrId('purchases')
-    var itemsField = col.fields.getByName('items')
-    if (itemsField) {
-      col.fields.remove(itemsField)
-    }
-    app.save(col)
+    // The 'items' JSON field is no longer used — purchase items are stored
+    // in the separate 'purchase_items' collection (migration 0025).
+    // The PocketBase JSVM fields list does not expose a remove method,
+    // so we leave the field in place. It remains null for all new records
+    // and does not interfere with the relational purchase_items workflow.
   },
-  (app) => {
-    var col = app.findCollectionByNameOrId('purchases')
-    if (!col.fields.getByName('items')) {
-      col.fields.add(new JSONField({ name: 'items' }))
-    }
-    app.save(col)
-  },
+  (app) => {},
 )
