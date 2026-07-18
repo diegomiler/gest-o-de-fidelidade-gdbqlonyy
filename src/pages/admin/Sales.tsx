@@ -54,10 +54,15 @@ function SortIcon({
   sortField: SortField
   sortDir: 'asc' | 'desc'
 }) {
-  const Icon = sortField !== field ? ArrowUpDown : sortDir === 'desc' ? ArrowDown : ArrowUp
   return (
     <span className="ml-1 inline-flex items-center">
-      <Icon className={sortField !== field ? 'h-3 w-3 opacity-50' : 'h-3 w-3'} />
+      {sortField !== field ? (
+        <ArrowUpDown className="h-3 w-3 opacity-50" />
+      ) : sortDir === 'desc' ? (
+        <ArrowDown className="h-3 w-3" />
+      ) : (
+        <ArrowUp className="h-3 w-3" />
+      )}
     </span>
   )
 }
