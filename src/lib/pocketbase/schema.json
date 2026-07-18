@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-18T22:29:01.666Z",
+  "generatedAt": "2026-07-18T22:55:50.214Z",
   "collections": [
     {
       "name": "users",
@@ -626,6 +626,12 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "product_code",
+          "type": "text",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE INDEX idx_purchase_items_purchase ON purchase_items (purchase)"]

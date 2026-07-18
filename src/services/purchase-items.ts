@@ -3,6 +3,7 @@ import pb from '@/lib/pocketbase/client'
 export interface PurchaseItem {
   id: string
   purchase: string
+  product_code: string
   name: string
   quantity: number
   unit_price: number

@@ -89,8 +89,9 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="text-right">Qtd</TableHead>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="text-right">Qtd</TableHead>{' '}
                     <TableHead className="text-right">Preço Unit.</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                   </TableRow>
@@ -98,13 +99,16 @@ export function PurchaseDetailDialog({ purchase, open, onOpenChange }: PurchaseD
                 <TableBody>
                   {items.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                         Nenhum item encontrado.
                       </TableCell>
                     </TableRow>
                   )}
                   {items.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell className="font-mono text-xs">
+                        {item.product_code || '—'}
+                      </TableCell>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell className="text-right">{item.quantity}</TableCell>
                       <TableCell className="text-right">{formatBRL(item.unit_price)}</TableCell>

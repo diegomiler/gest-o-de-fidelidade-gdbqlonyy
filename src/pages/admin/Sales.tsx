@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, type HTMLAttributes } from 'react'
+import { useState, useEffect, useCallback, useMemo, Fragment, type HTMLAttributes } from 'react'
 import {
   Search,
   Code,
@@ -10,6 +10,9 @@ import {
   Clock,
   XCircle,
   FileJson,
+  ChevronRight,
+  ChevronDown,
+  Package,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,6 +37,7 @@ import {
   releaseCashbackBatch,
   importSale,
   type AdminSale,
+  type AdminSaleItem,
 } from '@/services/admin'
 import { getCashbackRules, type CashbackRules } from '@/services/settings'
 import { formatBRL, formatDateTime } from '@/lib/format'
@@ -106,6 +110,7 @@ export default function AdminSales() {
   const [sortField, setSortField] = useState<'date' | 'total_amount'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
   const [importJson, setImportJson] = useState(
     JSON.stringify(
@@ -118,6 +123,15 @@ export default function AdminSales() {
           customerCpf: '123.456.789-00',
           totalAmount: 848.8,
           status: 'pending',
+          items: [
+            {
+              codigo: 'PRD-001',
+              descricao: 'Item de Exemplo',
+              quantidade: 2,
+              'preço unitario': 424.4,
+              'preço total': 848.8,
+            },
+          ],
         },
       },
       null,
@@ -148,6 +162,7 @@ export default function AdminSales() {
   useRealtime('purchases', () => loadData())
   useRealtime('cashback', () => loadData())
   useRealtime('settings', () => loadData())
+  useRealtime('purchase_items', () => loadData())
 
   const salesWithCalc = useMemo(
     () =>
@@ -179,6 +194,10 @@ export default function AdminSales() {
     })
     return result
   }, [salesWithCalc, search, sortField, sortDir])
+
+  const toggleExpand = (id: string) => {
+    setExpandedId((prev) => (prev === id ? null : id))
+  }
 
   const toggleSort = (field: 'date' | 'total_amount') => {
     if (sortField === field) {
@@ -300,6 +319,7 @@ export default function AdminSales() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[40px]"></TableHead>
                 <TableHead className="w-[40px]">
                   <Checkbox
                     checked={allSelected ? true : someSelected ? 'indeterminate' : false}
@@ -333,7 +353,7 @@ export default function AdminSales() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     Nenhuma venda encontrada.
                   </TableCell>
                 </TableRow>
@@ -346,63 +366,127 @@ export default function AdminSales() {
                   icon: Clock,
                 }
                 const StatusIcon = statusConfig.icon
+                const isExpanded = expandedId === sale.id
+                const saleItems: AdminSaleItem[] = sale.items || []
                 return (
-                  <TableRow
-                    key={sale.id}
-                    data-state={selectedIds.has(sale.id) ? 'selected' : undefined}
-                  >
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedIds.has(sale.id)}
-                        onCheckedChange={() => toggleSelect(sale.id)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-xs">{formatDateTime(sale.date)}</TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm">{sale.client_name || '—'}</div>
-                      <div className="text-xs text-muted-foreground">{sale.client_cpf || '—'}</div>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatBRL(sale.total_amount)}
-                    </TableCell>
-                    <TableCell className="text-right text-primary">
-                      {formatBRL(sale.cb_store)}
-                    </TableCell>
-                    <TableCell className="text-right text-amber-600">
-                      {formatBRL(sale.cb_fuel)}
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold rounded-full ${statusConfig.className}`}
-                      >
-                        <StatusIcon className="h-3 w-3" />
-                        {statusConfig.label}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {sale.status === 'pending' && cashbackIds.length > 0 && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => handleRelease(cashbackIds)}
-                          >
-                            <Unlock className="h-3 w-3 mr-1" />
-                            Liberar
-                          </Button>
-                        )}
+                  <Fragment key={sale.id}>
+                    <TableRow data-state={selectedIds.has(sale.id) ? 'selected' : undefined}>
+                      <TableCell>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => setSelectedAudit(sale)}
+                          onClick={() => toggleExpand(sale.id)}
                         >
-                          <Code className="h-4 w-4" />
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
                         </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(sale.id)}
+                          onCheckedChange={() => toggleSelect(sale.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-xs">{formatDateTime(sale.date)}</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm">{sale.client_name || '—'}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {sale.client_cpf || '—'}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatBRL(sale.total_amount)}
+                      </TableCell>
+                      <TableCell className="text-right text-primary">
+                        {formatBRL(sale.cb_store)}
+                      </TableCell>
+                      <TableCell className="text-right text-amber-600">
+                        {formatBRL(sale.cb_fuel)}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold rounded-full ${statusConfig.className}`}
+                        >
+                          <StatusIcon className="h-3 w-3" />
+                          {statusConfig.label}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {sale.status === 'pending' && cashbackIds.length > 0 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 text-xs"
+                              onClick={() => handleRelease(cashbackIds)}
+                            >
+                              <Unlock className="h-3 w-3 mr-1" />
+                              Liberar
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => setSelectedAudit(sale)}
+                          >
+                            <Code className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && saleItems.length > 0 && (
+                      <TableRow>
+                        <TableCell colSpan={9} className="bg-muted/30 p-4">
+                          <div className="rounded-md border">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Código</TableHead>
+                                  <TableHead>Descrição</TableHead>
+                                  <TableHead className="text-right">Quantidade</TableHead>
+                                  <TableHead className="text-right">Preço Unitário</TableHead>
+                                  <TableHead className="text-right">Preço Total</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {saleItems.map((item) => (
+                                  <TableRow key={item.id}>
+                                    <TableCell className="font-mono text-xs">
+                                      {item.product_code || '—'}
+                                    </TableCell>
+                                    <TableCell className="font-medium">{item.name}</TableCell>
+                                    <TableCell className="text-right">{item.quantity}</TableCell>
+                                    <TableCell className="text-right">
+                                      {formatBRL(item.unit_price)}
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium">
+                                      {formatBRL(item.total_price)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {isExpanded && saleItems.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={9}
+                          className="bg-muted/30 py-6 text-center text-sm text-muted-foreground"
+                        >
+                          <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          Nenhum item associado a esta venda.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
                 )
               })}
             </TableBody>
@@ -456,6 +540,7 @@ export default function AdminSales() {
                     cashbackStore: selectedAudit?.cb_store,
                     cashbackFuel: selectedAudit?.cb_fuel,
                     status: selectedAudit?.status,
+                    items: selectedAudit?.items || [],
                   },
                 },
                 null,
