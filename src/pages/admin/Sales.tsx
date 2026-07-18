@@ -45,7 +45,15 @@ const DEFAULT_RULES: CashbackRules = {
 
 type SortField = 'date' | 'total_amount'
 
-function renderSortIcon(field: SortField, sortField: SortField, sortDir: 'asc' | 'desc') {
+function SortIcon({
+  field,
+  sortField,
+  sortDir,
+}: {
+  field: SortField
+  sortField: SortField
+  sortDir: 'asc' | 'desc'
+}) {
   if (sortField !== field) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-50" />
   if (sortDir === 'desc') return <ArrowDown className="ml-1 inline h-3 w-3" />
   return <ArrowUp className="ml-1 inline h-3 w-3" />
@@ -249,7 +257,7 @@ export default function AdminSales() {
                     className="inline-flex items-center hover:text-foreground transition-colors"
                     onClick={() => toggleSort('date')}
                   >
-                    Data {renderSortIcon('date', sortField, sortDir)}
+                    Data <SortIcon field="date" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </TableHead>
                 <TableHead>Cliente / CPF</TableHead>
@@ -258,7 +266,8 @@ export default function AdminSales() {
                     className="inline-flex items-center hover:text-foreground transition-colors"
                     onClick={() => toggleSort('total_amount')}
                   >
-                    Valor (R$) {renderSortIcon('total_amount', sortField, sortDir)}
+                    Valor (R$){' '}
+                    <SortIcon field="total_amount" sortField={sortField} sortDir={sortDir} />
                   </button>
                 </TableHead>
                 <TableHead className="text-right">CB Loja</TableHead>
