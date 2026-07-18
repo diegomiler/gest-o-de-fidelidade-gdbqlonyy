@@ -54,9 +54,12 @@ function SortIcon({
   sortField: SortField
   sortDir: 'asc' | 'desc'
 }) {
-  if (sortField !== field) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-50" />
-  if (sortDir === 'desc') return <ArrowDown className="ml-1 inline h-3 w-3" />
-  return <ArrowUp className="ml-1 inline h-3 w-3" />
+  const Icon = sortField !== field ? ArrowUpDown : sortDir === 'desc' ? ArrowDown : ArrowUp
+  return (
+    <span className="ml-1 inline-flex items-center">
+      <Icon className={sortField !== field ? 'h-3 w-3 opacity-50' : 'h-3 w-3'} />
+    </span>
+  )
 }
 
 function calcCashback(total: number, percent: number): number {
