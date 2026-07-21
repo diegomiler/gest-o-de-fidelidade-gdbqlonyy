@@ -29,24 +29,38 @@ onRecordAfterCreateSuccess((e) => {
   var storePercent = 0
   var fuelPercent = 0
   var minPurchaseAmount = 0
-  var usingDefaults = true
+  var configFound = false
 
   try {
     var setting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
-    var rawValue = setting.get('value')
-    var config = rawValue
-    if (typeof config === 'string') config = JSON.parse(config)
-    if (config) {
-      usingDefaults = false
-      if (typeof config.store_percent === 'number') storePercent = config.store_percent
-      if (typeof config.fuel_percent === 'number') fuelPercent = config.fuel_percent
-      if (typeof config.min_purchase_amount === 'number')
-        minPurchaseAmount = config.min_purchase_amount
-    }
+    var sp = setting.get('store_percent')
+    var fp = setting.get('fuel_percent')
+    var mpa = setting.get('min_purchase_amount')
+    if (sp !== null && sp !== undefined && !isNaN(sp)) storePercent = sp
+    if (fp !== null && fp !== undefined && !isNaN(fp)) fuelPercent = fp
+    if (mpa !== null && mpa !== undefined && !isNaN(mpa)) minPurchaseAmount = mpa
+    configFound = true
   } catch (err) {
     $app
       .logger()
-      .warn('cashback rules not found in settings, using 0% defaults', 'error', err.message)
+      .error(
+        'cashback rules not found in settings — aborting cashback generation',
+        'error',
+        err.message,
+      )
+  }
+
+  if (!configFound) return e.next()
+
+  if ((!storePercent || storePercent <= 0) && (!fuelPercent || fuelPercent <= 0)) {
+    $app
+      .logger()
+      .error(
+        'store_percent and fuel_percent are both missing or zero — aborting cashback generation',
+        'purchaseId',
+        purchaseId,
+      )
+    return e.next()
   }
 
   if (totalAmount < minPurchaseAmount) return e.next()
@@ -103,10 +117,6 @@ onRecordAfterCreateSuccess((e) => {
 
   try {
     var cashbackCol = $app.findCollectionByNameOrId('cashback')
-    var noteText = usingDefaults
-      ? 'Cashback calculado com valores padrão (0%) - configuracao nao encontrada'
-      : ''
-
     var record = new Record(cashbackCol)
     record.set('client', clientId)
     record.set('purchase', purchaseId)
@@ -115,7 +125,6 @@ onRecordAfterCreateSuccess((e) => {
     record.set('amount_available', 0)
     record.set('amount_used', 0)
     record.set('status', 'pending')
-    if (noteText) record.set('notes', noteText)
     $app.save(record)
   } catch (err) {
     $app

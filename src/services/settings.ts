@@ -11,43 +11,27 @@ export interface CashbackRules {
 
 const RULES_KEY = 'cashback_rules'
 
-const RULE_FIELDS: (keyof CashbackRules)[] = [
-  'min_purchase_amount',
-  'store_percent',
-  'fuel_percent',
-  'min_redemption_amount',
-  'min_purchase_usage',
-]
-
 const DEFAULT_RULES: CashbackRules = {
-  min_purchase_amount: 0,
-  store_percent: 10,
+  min_purchase_amount: 100,
+  store_percent: 8,
   fuel_percent: 2,
-  min_redemption_amount: 10,
-  min_purchase_usage: 0,
+  min_redemption_amount: 50,
+  min_purchase_usage: 500,
 }
 
-function normalizeRules(raw: unknown): CashbackRules {
-  let parsed = raw
-  if (typeof raw === 'string') {
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
-      throw new Error('Os dados de configuração estão em um formato inválido no banco de dados.')
-    }
+function extractRulesFromRecord(record: any): CashbackRules {
+  const getNum = (field: string): number => {
+    const val = record[field]
+    if (typeof val === 'number' && !isNaN(val)) return val
+    return DEFAULT_RULES[field as keyof CashbackRules]
   }
-  if (!parsed || typeof parsed !== 'object') {
-    throw new Error('Formato de dados inválido para cashback_rules.')
+  return {
+    store_percent: getNum('store_percent'),
+    fuel_percent: getNum('fuel_percent'),
+    min_purchase_amount: getNum('min_purchase_amount'),
+    min_redemption_amount: getNum('min_redemption_amount'),
+    min_purchase_usage: getNum('min_purchase_usage'),
   }
-  const obj = parsed as Record<string, unknown>
-  const result = { ...DEFAULT_RULES }
-  for (const field of RULE_FIELDS) {
-    const val = obj[field]
-    if (typeof val === 'number' && !isNaN(val)) {
-      result[field] = val
-    }
-  }
-  return result
 }
 
 export const getCashbackRules = async (): Promise<CashbackRules> => {
@@ -64,22 +48,31 @@ export const getCashbackRules = async (): Promise<CashbackRules> => {
       'Não foi possível conectar ao banco de dados para carregar as configurações de cashback.',
     )
   }
-  const rawValue = record.value
-  if (rawValue === undefined || rawValue === null) {
-    throw new Error('O campo de configuração está vazio no banco de dados.')
-  }
-  return normalizeRules(rawValue)
+  return extractRulesFromRecord(record)
 }
 
 export const updateCashbackRules = async (rules: CashbackRules): Promise<CashbackRules> => {
-  const payload: CashbackRules = { ...rules }
+  const payload = {
+    store_percent: rules.store_percent,
+    fuel_percent: rules.fuel_percent,
+    min_purchase_amount: rules.min_purchase_amount,
+    min_redemption_amount: rules.min_redemption_amount,
+    min_purchase_usage: rules.min_purchase_usage,
+    value: {
+      store_percent: rules.store_percent,
+      fuel_percent: rules.fuel_percent,
+      min_purchase_amount: rules.min_purchase_amount,
+      min_redemption_amount: rules.min_redemption_amount,
+      min_purchase_usage: rules.min_purchase_usage,
+    },
+  }
   try {
     const record = await pb.collection('settings').getFirstListItem(`key = "${RULES_KEY}"`)
-    await pb.collection('settings').update(record.id, { value: payload })
+    await pb.collection('settings').update(record.id, payload)
   } catch (err) {
     if (err instanceof ClientResponseError && err.status === 404) {
       try {
-        await pb.collection('settings').create({ key: RULES_KEY, value: payload })
+        await pb.collection('settings').create({ key: RULES_KEY, ...payload })
       } catch (createErr) {
         throw new Error(
           'Não foi possível criar o registro de configuração no banco de dados. Tente novamente.',

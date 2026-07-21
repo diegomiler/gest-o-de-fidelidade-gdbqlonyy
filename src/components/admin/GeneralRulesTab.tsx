@@ -20,11 +20,11 @@ import { useToast } from '@/hooks/use-toast'
 import { ProgramSummary } from '@/components/admin/ProgramSummary'
 
 const DEFAULT_RULES: CashbackRules = {
-  min_purchase_amount: 0,
-  store_percent: 10,
+  min_purchase_amount: 100,
+  store_percent: 8,
   fuel_percent: 2,
-  min_redemption_amount: 10,
-  min_purchase_usage: 0,
+  min_redemption_amount: 50,
+  min_purchase_usage: 500,
 }
 
 export function GeneralRulesTab() {

@@ -133,22 +133,35 @@ routerAdd(
       var cbFuelPercent = 0
       try {
         var cbSetting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
-        var cbRawValue = cbSetting.get('value')
-        var cbConfig = cbRawValue
-        if (typeof cbConfig === 'string') cbConfig = JSON.parse(cbConfig)
-        if (cbConfig) {
-          if (typeof cbConfig.store_percent === 'number') cbStorePercent = cbConfig.store_percent
-          if (typeof cbConfig.fuel_percent === 'number') cbFuelPercent = cbConfig.fuel_percent
-        }
+        var sp = cbSetting.get('store_percent')
+        var fp = cbSetting.get('fuel_percent')
+        if (sp !== null && sp !== undefined && !isNaN(sp)) cbStorePercent = sp
+        if (fp !== null && fp !== undefined && !isNaN(fp)) cbFuelPercent = fp
       } catch (cbRuleErr) {
         $app
           .logger()
-          .warn('cashback_rules not found in settings during import', 'error', cbRuleErr.message)
+          .error('cashback_rules not found in settings during import', 'error', cbRuleErr.message)
+        return e.json(500, {
+          error:
+            'Configuração de cashback não encontrada. Não é possível processar a venda sem regras válidas.',
+        })
+      }
+
+      if (!cbStorePercent || cbStorePercent <= 0) {
+        return e.json(400, {
+          error:
+            'Percentual de cashback da loja (store_percent) não está configurado ou é zero. Não é possível gerar cashback com valores inválidos.',
+        })
+      }
+      if (!cbFuelPercent || cbFuelPercent <= 0) {
+        return e.json(400, {
+          error:
+            'Percentual de cashback de combustível (fuel_percent) não está configurado ou é zero. Não é possível gerar cashback com valores inválidos.',
+        })
       }
 
       var storeCashbackAmount = totalAmount * (cbStorePercent / 100)
       var fuelCashbackAmount = totalAmount * (cbFuelPercent / 100)
-
       try {
         var cashbackCol = $app.findCollectionByNameOrId('cashback')
 
@@ -156,21 +169,29 @@ routerAdd(
         storeCbRecord.set('client', userId)
         storeCbRecord.set('purchase', purchase.id)
         storeCbRecord.set('type', 'loja')
-        storeCbRecord.set('amount_generated', storeCashbackAmount)
-        storeCbRecord.set('amount_available', storeCashbackAmount)
-        storeCbRecord.set('amount_used', 0)
-        storeCbRecord.set('status', 'pending')
-        $app.save(storeCbRecord)
+        if (storeCashbackAmount > 0) {
+          var storeCbRecord = new Record(cashbackCol)
+          storeCbRecord.set('client', userId)
+          storeCbRecord.set('purchase', purchase.id)
+          storeCbRecord.set('type', 'loja')
+          storeCbRecord.set('amount_generated', storeCashbackAmount)
+          storeCbRecord.set('amount_available', storeCashbackAmount)
+          storeCbRecord.set('amount_used', 0)
+          storeCbRecord.set('status', 'pending')
+          $app.save(storeCbRecord)
+        }
 
-        var fuelCbRecord = new Record(cashbackCol)
-        fuelCbRecord.set('client', userId)
-        fuelCbRecord.set('purchase', purchase.id)
-        fuelCbRecord.set('type', 'combustivel')
-        fuelCbRecord.set('amount_generated', fuelCashbackAmount)
-        fuelCbRecord.set('amount_available', fuelCashbackAmount)
-        fuelCbRecord.set('amount_used', 0)
-        fuelCbRecord.set('status', 'pending')
-        $app.save(fuelCbRecord)
+        if (fuelCashbackAmount > 0) {
+          var fuelCbRecord = new Record(cashbackCol)
+          fuelCbRecord.set('client', userId)
+          fuelCbRecord.set('purchase', purchase.id)
+          fuelCbRecord.set('type', 'combustivel')
+          fuelCbRecord.set('amount_generated', fuelCashbackAmount)
+          fuelCbRecord.set('amount_available', fuelCashbackAmount)
+          fuelCbRecord.set('amount_used', 0)
+          fuelCbRecord.set('status', 'pending')
+          $app.save(fuelCbRecord)
+        }
       } catch (cbCreateErr) {
         $app
           .logger()

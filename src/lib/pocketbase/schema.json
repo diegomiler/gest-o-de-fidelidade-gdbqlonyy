@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-18T23:32:22.569Z",
+  "generatedAt": "2026-07-21T23:20:58.043Z",
   "collections": [
     {
       "name": "users",
@@ -567,6 +567,36 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "store_percent",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "fuel_percent",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "min_purchase_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "min_redemption_amount",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "min_purchase_usage",
+          "type": "number",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": ["CREATE UNIQUE INDEX idx_settings_key ON settings (key)"]
