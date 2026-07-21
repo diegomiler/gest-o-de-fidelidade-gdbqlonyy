@@ -25,6 +25,9 @@ onRecordAfterUpdateSuccess((e) => {
   purchase.set('total_amount', total)
   $app.save(purchase)
 
+  var importOrigin = (purchase.getString('origin_channel') || '').toLowerCase()
+  if (importOrigin === 'import') return e.next()
+
   if (total <= 0) return e.next()
 
   var storePercent = 0

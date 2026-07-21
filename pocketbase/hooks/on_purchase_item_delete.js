@@ -18,6 +18,13 @@ onRecordAfterDeleteSuccess((e) => {
     $app.save(purchase)
   } catch (_) {}
 
+  var importOrigin = ''
+  try {
+    var pForOrigin = $app.findRecordById('purchases', purchaseId)
+    importOrigin = (pForOrigin.getString('origin_channel') || '').toLowerCase()
+  } catch (_) {}
+  if (importOrigin === 'import') return e.next()
+
   var existingCb = []
   try {
     existingCb = $app.findRecordsByFilter('cashback', "purchase = '" + purchaseId + "'", '', 0, 0)

@@ -160,15 +160,31 @@ routerAdd(
         })
       }
 
+      var existingImportCb = []
+      try {
+        existingImportCb = $app.findRecordsByFilter(
+          'cashback',
+          "purchase = '" + purchase.id + "'",
+          '',
+          0,
+          0,
+        )
+      } catch (_) {}
+
+      if (existingImportCb.length > 0) {
+        return e.json(200, {
+          success: true,
+          id: purchase.id,
+          message: 'Sale imported successfully — cashback already exists',
+          items_created: itemsCreated,
+        })
+      }
+
       var storeCashbackAmount = totalAmount * (cbStorePercent / 100)
       var fuelCashbackAmount = totalAmount * (cbFuelPercent / 100)
       try {
         var cashbackCol = $app.findCollectionByNameOrId('cashback')
 
-        var storeCbRecord = new Record(cashbackCol)
-        storeCbRecord.set('client', userId)
-        storeCbRecord.set('purchase', purchase.id)
-        storeCbRecord.set('type', 'loja')
         if (storeCashbackAmount > 0) {
           var storeCbRecord = new Record(cashbackCol)
           storeCbRecord.set('client', userId)
