@@ -39,15 +39,12 @@ onRecordAfterDeleteSuccess((e) => {
   var minPurchaseAmount = 0
   try {
     var setting = $app.findFirstRecordByData('settings', 'key', 'cashback_rules')
-    var rawValue = setting.get('value')
-    var config = rawValue
-    if (typeof config === 'string') config = JSON.parse(config)
-    if (config) {
-      if (typeof config.store_percent === 'number') storePercent = config.store_percent
-      if (typeof config.fuel_percent === 'number') fuelPercent = config.fuel_percent
-      if (typeof config.min_purchase_amount === 'number')
-        minPurchaseAmount = config.min_purchase_amount
-    }
+    var sp = setting.get('store_percent')
+    var fp = setting.get('fuel_percent')
+    var mpa = setting.get('min_purchase_amount')
+    if (sp !== null && sp !== undefined && !isNaN(sp)) storePercent = sp
+    if (fp !== null && fp !== undefined && !isNaN(fp)) fuelPercent = fp
+    if (mpa !== null && mpa !== undefined && !isNaN(mpa)) minPurchaseAmount = mpa
   } catch (err) {
     $app
       .logger()
