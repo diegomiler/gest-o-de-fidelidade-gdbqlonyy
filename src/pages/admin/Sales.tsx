@@ -13,6 +13,7 @@ import {
   ChevronRight,
   ChevronDown,
   Package,
+  CreditCard,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,6 +28,7 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -40,6 +42,7 @@ import {
   type AdminSaleItem,
 } from '@/services/admin'
 import { getCashbackRules, type CashbackRules } from '@/services/settings'
+import { getPaymentsBatch, type Payment } from '@/services/payments'
 import { formatBRL, formatDateTime } from '@/lib/format'
 
 const DEFAULT_RULES: CashbackRules = {
@@ -83,6 +86,15 @@ function getCashbackIds(sale: AdminSale): string[] {
   return (sale.cashback_records || []).map((r) => r.id)
 }
 
+const PAYMENT_LABELS: Record<string, string> = {
+  dinheiro: 'Dinheiro',
+  cartao_credito: 'Cartão Créd.',
+  cartao_debito: 'Cartão Déb.',
+  pix: 'PIX',
+  voucher: 'Voucher',
+  vale: 'Vale',
+}
+
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: typeof Clock }> = {
   pending: {
     label: 'Pendente',
@@ -111,6 +123,7 @@ export default function AdminSales() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [paymentsMap, setPaymentsMap] = useState<Record<string, Payment[]>>({})
   const [importOpen, setImportOpen] = useState(false)
   const [importJson, setImportJson] = useState(
     JSON.stringify(
@@ -123,6 +136,10 @@ export default function AdminSales() {
           customerCpf: '123.456.789-00',
           totalAmount: 848.8,
           status: 'pending',
+          payments: [
+            { method: 'cartao_credito', amount: 424.4 },
+            { method: 'dinheiro', amount: 424.4 },
+          ],
           items: [
             {
               codigo: 'PRD-001',
@@ -149,6 +166,9 @@ export default function AdminSales() {
       ])
       setSales(salesResult.sales)
       setRules(rulesResult)
+      const purchaseIds = salesResult.sales.map((s) => s.id)
+      const payments = await getPaymentsBatch(purchaseIds)
+      setPaymentsMap(payments)
     } catch {
       /* intentionally ignored */
     } finally {
@@ -163,6 +183,7 @@ export default function AdminSales() {
   useRealtime('cashback', () => loadData())
   useRealtime('settings', () => loadData())
   useRealtime('purchase_items', () => loadData())
+  useRealtime('payments', () => loadData())
 
   const salesWithCalc = useMemo(
     () =>
@@ -346,6 +367,7 @@ export default function AdminSales() {
                 </TableHead>
                 <TableHead className="text-right">CB Loja</TableHead>
                 <TableHead className="text-right">CB Comb.</TableHead>
+                <TableHead>Pagamentos</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[120px]">Ações</TableHead>
               </TableRow>
@@ -353,7 +375,7 @@ export default function AdminSales() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     Nenhuma venda encontrada.
                   </TableCell>
                 </TableRow>
@@ -408,6 +430,19 @@ export default function AdminSales() {
                         {formatBRL(sale.cb_fuel)}
                       </TableCell>
                       <TableCell>
+                        {paymentsMap[sale.id]?.length ? (
+                          <div className="flex flex-wrap gap-1">
+                            {paymentsMap[sale.id].map((p, i) => (
+                              <Badge key={i} variant="outline" className="text-[10px]">
+                                {PAYMENT_LABELS[p.method] || p.method}
+                              </Badge>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold rounded-full ${statusConfig.className}`}
                         >
@@ -441,7 +476,7 @@ export default function AdminSales() {
                     </TableRow>
                     {isExpanded && saleItems.length > 0 && (
                       <TableRow>
-                        <TableCell colSpan={9} className="bg-muted/30 p-4">
+                        <TableCell colSpan={10} className="bg-muted/30 p-4">
                           <div className="rounded-md border">
                             <Table>
                               <TableHeader>
@@ -478,7 +513,7 @@ export default function AdminSales() {
                     {isExpanded && saleItems.length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={9}
+                          colSpan={10}
                           className="bg-muted/30 py-6 text-center text-sm text-muted-foreground"
                         >
                           <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -522,10 +557,40 @@ export default function AdminSales() {
       </Dialog>
 
       <Dialog open={!!selectedAudit} onOpenChange={(o) => !o && setSelectedAudit(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Payload da API (Audit)</DialogTitle>
           </DialogHeader>
+          {selectedAudit && (paymentsMap[selectedAudit.id] || []).length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Forma(s) de Pagamento
+              </h4>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Método</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(paymentsMap[selectedAudit.id] || []).map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <Badge variant="secondary">{PAYMENT_LABELS[p.method] || p.method}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-medium">
+                          {formatBRL(p.amount)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          )}
           <div className="bg-slate-950 text-emerald-400 p-4 rounded-md overflow-auto text-xs font-mono max-h-[400px]">
             <pre>
               {JSON.stringify(
@@ -540,6 +605,10 @@ export default function AdminSales() {
                     cashbackStore: selectedAudit?.cb_store,
                     cashbackFuel: selectedAudit?.cb_fuel,
                     status: selectedAudit?.status,
+                    payments: (paymentsMap[selectedAudit?.id || ''] || []).map((p) => ({
+                      method: p.method,
+                      amount: p.amount,
+                    })),
                     items: selectedAudit?.items || [],
                   },
                 },

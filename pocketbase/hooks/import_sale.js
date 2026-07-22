@@ -13,6 +13,7 @@ routerAdd(
     var status = data.status || 'pending'
     var timestamp = body.timestamp || data.timestamp || ''
     var items = data.items || []
+    var payments = data.payments || []
 
     var purchaseDate = ''
     if (timestamp) {
@@ -129,6 +130,35 @@ routerAdd(
         }
       }
 
+      var paymentsCreated = 0
+      if (payments.length > 0) {
+        try {
+          var paymentsCol = $app.findCollectionByNameOrId('payments')
+          for (var pi = 0; pi < payments.length; pi++) {
+            var payment = payments[pi]
+            var payMethod = payment.method || payment.metodo || ''
+            var payAmount = Number(payment.amount) || Number(payment.valor) || 0
+            if (!payMethod) continue
+            var payRecord = new Record(paymentsCol)
+            payRecord.set('purchase', purchase.id)
+            payRecord.set('method', payMethod)
+            payRecord.set('amount', payAmount)
+            $app.save(payRecord)
+            paymentsCreated++
+          }
+        } catch (payErr) {
+          $app
+            .logger()
+            .warn(
+              'Failed to create some payments',
+              'purchaseId',
+              purchase.id,
+              'error',
+              payErr.message,
+            )
+        }
+      }
+
       var cbStorePercent = 0
       var cbFuelPercent = 0
       try {
@@ -177,6 +207,7 @@ routerAdd(
           id: purchase.id,
           message: 'Sale imported successfully — cashback already exists',
           items_created: itemsCreated,
+          payments_created: paymentsCreated,
         })
       }
 
@@ -228,6 +259,7 @@ routerAdd(
             ? 'Sale imported successfully with ' + itemsCreated + ' item(s)'
             : 'Sale imported successfully',
         items_created: itemsCreated,
+        payments_created: paymentsCreated,
       })
     } catch (err) {
       return e.json(500, { error: 'Failed to create purchase: ' + err.message })
