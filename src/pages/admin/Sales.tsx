@@ -373,7 +373,7 @@ export default function AdminSales() {
                 </TableHead>
                 <TableHead className="text-right">CB Loja</TableHead>
                 <TableHead className="text-right">CB Comb.</TableHead>
-                <TableHead>Pagamentos</TableHead>
+
                 <TableHead>Status</TableHead>
                 <TableHead className="w-[120px]">Ações</TableHead>
               </TableRow>
@@ -452,19 +452,7 @@ export default function AdminSales() {
                       <TableCell className="text-right text-amber-600">
                         {formatBRL(sale.cb_fuel)}
                       </TableCell>
-                      <TableCell>
-                        {paymentsMap[sale.id]?.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {paymentsMap[sale.id].map((p, i) => (
-                              <Badge key={i} variant="outline" className="text-[10px]">
-                                {PAYMENT_LABELS[p.method] || p.method}
-                              </Badge>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">—</span>
-                        )}
-                      </TableCell>
+
                       <TableCell>
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-1 text-[10px] uppercase font-bold rounded-full ${statusConfig.className}`}
