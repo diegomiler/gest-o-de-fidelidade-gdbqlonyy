@@ -1,20 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Info, ArrowRight, Store, Fuel, ScanLine, Receipt } from 'lucide-react'
+import { Info, ArrowRight, Store, Fuel, Receipt } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { Carousel, CarouselContent, CarouselItem } from '@/components/ui/carousel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PurchaseDetailDialog } from '@/components/consumer/PurchaseDetailDialog'
@@ -23,9 +12,7 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getCashbackByUser } from '@/services/cashback'
 import { getPurchases } from '@/services/purchases'
 import { getBanners } from '@/services/banners'
-import { getCashbackRules } from '@/services/settings'
 import { formatBRL, formatDate, bannerImage, calculatePurchaseTotal } from '@/lib/format'
-import { toast } from '@/hooks/use-toast'
 
 interface Balance {
   store: number
@@ -57,22 +44,17 @@ export default function ConsumerDashboard() {
   const [purchases, setPurchases] = useState<any[]>([])
   const [banners, setBanners] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [purchaseAmount, setPurchaseAmount] = useState('')
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [minPurchaseUsage, setMinPurchaseUsage] = useState(0)
   const [selectedPurchase, setSelectedPurchase] = useState<any | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
 
   const loadData = useCallback(async () => {
     if (!user?.id) return
     try {
-      const [cashbackRecords, purchaseRecords, bannerRecords, usageData] = await Promise.all([
+      const [cashbackRecords, purchaseRecords, bannerRecords] = await Promise.all([
         getCashbackByUser(user.id),
         getPurchases(user.id),
         getBanners(),
-        getCashbackRules(),
       ])
-      setMinPurchaseUsage(usageData.min_purchase_usage)
       setBalance({
         store: cashbackRecords
           .filter((c: any) => c.type === 'loja' && c.status === 'released')
@@ -102,23 +84,6 @@ export default function ConsumerDashboard() {
   useRealtime('cashback', () => loadData())
   useRealtime('purchases', () => loadData())
 
-  const handleUseCashback = () => {
-    const val = parseFloat(purchaseAmount.replace(',', '.'))
-    if (isNaN(val) || val < minPurchaseUsage) {
-      toast({
-        title: 'Valor da compra insuficiente',
-        description: `Valor da compra insuficiente para utilizar cashback (Mínimo: R$ ${minPurchaseUsage
-          .toFixed(2)
-          .replace('.', ',')})`,
-        variant: 'destructive',
-      })
-      return
-    }
-    toast({ title: 'Sucesso', description: 'Cashback aplicado na sua compra!' })
-    setIsDialogOpen(false)
-    setPurchaseAmount('')
-  }
-
   const handlePurchaseClick = (tx: any) => {
     setSelectedPurchase(tx)
     setDetailOpen(true)
@@ -147,41 +112,6 @@ export default function ConsumerDashboard() {
             <p className="text-sm opacity-80">
               + {formatBRL(balance.pendingStore)} liberando no próximo mês
             </p>
-            <div className="mt-4 flex gap-2">
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="secondary" className="w-full">
-                    <ScanLine className="mr-2 h-4 w-4" /> Usar Cashback
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Utilizar Cashback de Loja</DialogTitle>
-                    <DialogDescription>
-                      {minPurchaseUsage > 0
-                        ? `O valor da compra deve ser igual ou superior a R$ ${minPurchaseUsage
-                            .toFixed(2)
-                            .replace('.', ',')}.`
-                        : 'Insira o valor da compra para aplicar o cashback.'}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="amount">Valor da Compra (R$)</Label>
-                      <Input
-                        id="amount"
-                        placeholder="Ex: 150,00"
-                        value={purchaseAmount}
-                        onChange={(e) => setPurchaseAmount(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button onClick={handleUseCashback}>Validar e Usar</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
           </CardContent>
         </Card>
 
