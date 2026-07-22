@@ -561,36 +561,7 @@ export default function AdminSales() {
           <DialogHeader>
             <DialogTitle>Payload da API (Audit)</DialogTitle>
           </DialogHeader>
-          {selectedAudit && (paymentsMap[selectedAudit.id] || []).length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <CreditCard className="h-4 w-4" />
-                Forma(s) de Pagamento
-              </h4>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Método</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(paymentsMap[selectedAudit.id] || []).map((p) => (
-                      <TableRow key={p.id}>
-                        <TableCell>
-                          <Badge variant="secondary">{PAYMENT_LABELS[p.method] || p.method}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {formatBRL(p.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-          )}
+          {selectedAudit && (paymentsMap[selectedAudit.id] || []).length > 0 && null}
           <div className="bg-slate-950 text-emerald-400 p-4 rounded-md overflow-auto text-xs font-mono max-h-[400px]">
             <pre>
               {JSON.stringify(
