@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-22T00:51:17.626Z",
+  "generatedAt": "2026-07-22T01:33:33.967Z",
   "collections": [
     {
       "name": "users",
@@ -137,18 +137,6 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
-        },
-        {
-          "name": "items",
-          "type": "json",
-          "required": false,
-          "system": false
-        },
-        {
-          "name": "payment_method",
-          "type": "text",
-          "required": false,
-          "system": false
         }
       ],
       "indexes": [

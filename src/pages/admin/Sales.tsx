@@ -44,6 +44,7 @@ import {
 import { getCashbackRules, type CashbackRules } from '@/services/settings'
 import { getPaymentsBatch, type Payment } from '@/services/payments'
 import { formatBRL, formatDateTime } from '@/lib/format'
+import { cn } from '@/lib/utils'
 
 const DEFAULT_RULES: CashbackRules = {
   min_purchase_amount: 0,
@@ -123,6 +124,7 @@ export default function AdminSales() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedPaymentId, setExpandedPaymentId] = useState<string | null>(null)
   const [paymentsMap, setPaymentsMap] = useState<Record<string, Payment[]>>({})
   const [importOpen, setImportOpen] = useState(false)
   const [importJson, setImportJson] = useState(
@@ -218,6 +220,10 @@ export default function AdminSales() {
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id))
+  }
+
+  const togglePaymentExpand = (id: string) => {
+    setExpandedPaymentId((prev) => (prev === id ? null : id))
   }
 
   const toggleSort = (field: 'date' | 'total_amount') => {
@@ -389,23 +395,40 @@ export default function AdminSales() {
                 }
                 const StatusIcon = statusConfig.icon
                 const isExpanded = expandedId === sale.id
+                const isPaymentExpanded = expandedPaymentId === sale.id
                 const saleItems: AdminSaleItem[] = sale.items || []
+                const salePayments = paymentsMap[sale.id] || []
                 return (
                   <Fragment key={sale.id}>
                     <TableRow data-state={selectedIds.has(sale.id) ? 'selected' : undefined}>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => toggleExpand(sale.id)}
-                        >
-                          {isExpanded ? (
-                            <ChevronDown className="h-4 w-4" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={() => toggleExpand(sale.id)}
+                            title="Ver itens"
+                          >
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              'h-7 w-7',
+                              isPaymentExpanded && 'bg-primary/10 text-primary',
+                            )}
+                            onClick={() => togglePaymentExpand(sale.id)}
+                            title="Ver pagamentos"
+                          >
+                            <CreditCard className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Checkbox
@@ -518,6 +541,48 @@ export default function AdminSales() {
                         >
                           <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
                           Nenhum item associado a esta venda.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {isPaymentExpanded && salePayments.length > 0 && (
+                      <TableRow>
+                        <TableCell colSpan={10} className="bg-muted/30 p-4">
+                          <div className="rounded-md border">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Método de Pagamento</TableHead>
+                                  <TableHead className="text-right">Valor</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {salePayments.map((p, i) => (
+                                  <TableRow key={i}>
+                                    <TableCell className="font-medium">
+                                      <div className="flex items-center gap-2">
+                                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                        {PAYMENT_LABELS[p.method] || p.method}
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-right font-medium">
+                                      {formatBRL(p.amount)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {isPaymentExpanded && salePayments.length === 0 && (
+                      <TableRow>
+                        <TableCell
+                          colSpan={10}
+                          className="bg-muted/30 py-6 text-center text-sm text-muted-foreground"
+                        >
+                          <CreditCard className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          Nenhum pagamento registrado.
                         </TableCell>
                       </TableRow>
                     )}
