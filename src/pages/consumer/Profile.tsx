@@ -7,13 +7,10 @@ import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/use-auth'
-import { useRealtime } from '@/hooks/use-realtime'
+import { MockStore } from '@/services/mock/store'
 import { getErrorMessage } from '@/lib/pocketbase/errors'
 import { formatDate } from '@/lib/format'
 import { toast } from '@/hooks/use-toast'
-import pb from '@/lib/pocketbase/client'
-
-const PB_URL = import.meta.env.VITE_POCKETBASE_URL
 
 export default function ConsumerProfile() {
   const { user, signOut } = useAuth()
@@ -33,17 +30,7 @@ export default function ConsumerProfile() {
     }
   }, [user])
 
-  useRealtime('users', async () => {
-    try {
-      await pb.collection('users').authRefresh()
-    } catch {
-      /* intentionally ignored */
-    }
-  })
-
-  const currentAvatarUrl = user?.avatar
-    ? `${PB_URL}/api/files/users/${user.id}/${user.avatar}`
-    : undefined
+  const currentAvatarUrl = user?.avatar || undefined
 
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -54,33 +41,36 @@ export default function ConsumerProfile() {
       return
     }
 
-    setAvatarPreview(URL.createObjectURL(file))
     setUploadingAvatar(true)
-
-    try {
-      const formData = new FormData()
-      formData.append('avatar', file)
-      await pb.collection('users').update(user.id, formData)
-      await pb.collection('users').authRefresh()
-      toast({
-        title: 'Foto atualizada',
-        description: 'Sua foto de perfil foi atualizada com sucesso.',
-      })
-    } catch (err) {
-      toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
-    } finally {
-      setAvatarPreview('')
-      setUploadingAvatar(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setAvatarPreview(dataUrl)
+      try {
+        MockStore.updateUser(user.id, { avatar: dataUrl })
+        toast({
+          title: 'Foto atualizada',
+          description: 'Sua foto de perfil foi atualizada com sucesso.',
+        })
+      } catch (err) {
+        toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
+      } finally {
+        setUploadingAvatar(false)
+        if (fileInputRef.current) fileInputRef.current.value = ''
+      }
     }
+    reader.onerror = () => {
+      setUploadingAvatar(false)
+      toast({ title: 'Erro ao ler arquivo', variant: 'destructive' })
+    }
+    reader.readAsDataURL(file)
   }
 
   const handleSave = async () => {
     if (!user?.id) return
     setSaving(true)
     try {
-      await pb.collection('users').update(user.id, { name, phone, cpf })
-      await pb.collection('users').authRefresh()
+      MockStore.updateUser(user.id, { name, phone, cpf })
       toast({ title: 'Perfil atualizado', description: 'Seus dados foram salvos com sucesso.' })
     } catch (err) {
       toast({ title: 'Erro', description: getErrorMessage(err), variant: 'destructive' })
@@ -131,7 +121,7 @@ export default function ConsumerProfile() {
               />
             </div>
             <div>
-              <CardTitle>{user?.name || 'Usuário'}</CardTitle>
+              <CardTitle>{name || user?.name || 'Usuário'}</CardTitle>
               <CardDescription>{user?.email}</CardDescription>
               {user?.created && (
                 <p className="text-xs text-muted-foreground mt-1">

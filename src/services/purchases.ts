@@ -1,11 +1,5 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
-export const getPurchases = (userId: string) =>
-  pb.collection('purchases').getFullList({
-    filter: `client = "${userId}"`,
-    sort: '-purchase_date',
-    expand: 'client',
-  })
+export const getPurchases = (userId: string) => apiService.getPurchases(userId)
 
-export const getPurchase = (id: string) =>
-  pb.collection('purchases').getOne(id, { expand: 'client' })
+export const getPurchase = (id: string) => apiService.getPurchase(id)

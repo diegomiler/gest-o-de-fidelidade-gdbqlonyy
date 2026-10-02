@@ -1,21 +1,14 @@
 import { useEffect, useRef } from 'react'
-import type { RecordModel, RecordSubscription } from 'pocketbase'
-
-import pb from '@/lib/pocketbase/client'
+import { MockStore } from '@/services/mock/store'
 
 /**
- * Hook for real-time subscriptions to a PocketBase collection.
- * ALWAYS use this hook instead of subscribing inline.
- * Uses the per-listener UnsubscribeFunc so multiple components
- * can safely subscribe to the same collection without conflicts.
- *
- * Generic over the record type: pass your collection's interface as
- * `useRealtime<MyRecord>(...)` to get a typed subscription payload
- * instead of `unknown`.
+ * Hook de reatividade local para dados mockados.
+ * Substitui o listen do PocketBase realtime sem realizar nenhuma chamada remota,
+ * disparando os callbacks sempre que ocorrem alterações na store mock.
  */
-export function useRealtime<TRecord extends RecordModel = RecordModel>(
+export function useRealtime<TRecord = unknown>(
   collectionName: string,
-  callback: (data: RecordSubscription<TRecord>) => void,
+  callback: (data: { action: string; record: TRecord }) => void,
   enabled: boolean = true,
 ) {
   const callbackRef = useRef(callback)
@@ -24,27 +17,24 @@ export function useRealtime<TRecord extends RecordModel = RecordModel>(
   useEffect(() => {
     if (!enabled) return
 
-    let unsubscribeFn: (() => Promise<void>) | undefined
-    let cancelled = false
-
-    pb.collection<TRecord>(collectionName)
-      .subscribe('*', (e) => {
-        callbackRef.current(e)
-      })
-      .then((fn) => {
-        if (cancelled) {
-          fn().catch(() => {})
-        } else {
-          unsubscribeFn = fn
-        }
-      })
-      .catch(() => {})
+    const unsubscribe = MockStore.subscribe((key) => {
+      // Dispara se a coleção alterada for a observada ou um evento global ('all'/'reset')
+      if (
+        key === collectionName ||
+        key === 'all' ||
+        key === 'reset' ||
+        (collectionName === 'purchases' && key === 'cashback') ||
+        (collectionName === 'cashback' && key === 'purchases')
+      ) {
+        callbackRef.current({
+          action: 'update',
+          record: {} as TRecord,
+        })
+      }
+    })
 
     return () => {
-      cancelled = true
-      if (unsubscribeFn) {
-        unsubscribeFn().catch(() => {})
-      }
+      unsubscribe()
     }
   }, [collectionName, enabled])
 }

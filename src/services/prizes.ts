@@ -1,20 +1,18 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
-export const getPrizes = () =>
-  pb.collection('prizes').getFullList({
-    filter: 'active = true',
-    sort: 'required_amount',
-  })
+export const getPrizes = () => apiService.getPrizes()
 
-export const getAllPrizes = () => pb.collection('prizes').getFullList({ sort: '-created' })
+export const getAllPrizes = () => apiService.getAllPrizes()
 
-export const getPrize = (id: string) => pb.collection('prizes').getOne(id)
+export const getPrize = (id: string) => apiService.getPrize(id)
 
-export const createPrize = (data: FormData) => pb.collection('prizes').create(data)
+export const createPrize = (data: FormData | Record<string, unknown>) =>
+  apiService.createPrize(data)
 
-export const updatePrize = (id: string, data: FormData) => pb.collection('prizes').update(id, data)
+export const updatePrize = (id: string, data: FormData | Record<string, unknown>) =>
+  apiService.updatePrize(id, data)
 
 export const updatePrizeFields = (id: string, data: Record<string, unknown>) =>
-  pb.collection('prizes').update(id, data)
+  apiService.updatePrize(id, data)
 
-export const deletePrize = (id: string) => pb.collection('prizes').delete(id)
+export const deletePrize = (id: string) => apiService.deletePrize(id)

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Bell, LogOut, User as UserIcon, Store, Fuel } from 'lucide-react'
+import { LogOut, User as UserIcon, Store, Fuel } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -16,9 +16,6 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRealtime } from '@/hooks/use-realtime'
 import { getReleasedCashbackByUser } from '@/services/cashback'
 import { formatBRL } from '@/lib/format'
-import pb from '@/lib/pocketbase/client'
-
-const PB_URL = import.meta.env.VITE_POCKETBASE_URL
 
 interface CategorizedBalance {
   store: number
@@ -61,7 +58,7 @@ export function ConsumerHeader() {
   useRealtime('cashback', () => loadBalance())
   useRealtime('purchases', () => loadBalance())
 
-  const avatarUrl = user?.avatar ? `${PB_URL}/api/files/users/${user.id}/${user.avatar}` : undefined
+  const avatarUrl = user?.avatar || undefined
 
   const initials = (user?.name || 'U')
     .split(' ')

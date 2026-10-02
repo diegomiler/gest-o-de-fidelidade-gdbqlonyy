@@ -1,14 +1,10 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
-export const getRedemptions = (userId: string) =>
-  pb.collection('redemptions').getFullList({
-    filter: `client = "${userId}"`,
-    sort: '-created',
-  })
+export const getRedemptions = (userId: string) => apiService.getRedemptions(userId)
 
 export const createRedemption = (data: {
   client: string
   prize: string
   quantity: number
   total_cost: number
-}) => pb.collection('redemptions').create(data)
+}) => apiService.createRedemption(data)

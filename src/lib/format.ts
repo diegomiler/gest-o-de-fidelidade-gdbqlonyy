@@ -1,5 +1,3 @@
-const PB_URL = import.meta.env.VITE_POCKETBASE_URL
-
 export function formatBRL(value: number): string {
   return (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -9,10 +7,12 @@ export function formatBRLPlain(value: number): string {
 }
 
 export function formatDate(date: string | Date): string {
+  if (!date) return '—'
   return new Date(date).toLocaleDateString('pt-BR')
 }
 
 export function formatDateTime(date: string | Date): string {
+  if (!date) return '—'
   return new Date(date).toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -23,13 +23,21 @@ export function formatDateTime(date: string | Date): string {
 }
 
 export function getFileUrl(record: any, field: string, fallback?: string): string {
-  const filename = record?.[field]
-  if (!filename) return fallback || ''
-  const collectionId = record?.collectionId || record?.collectionName || ''
-  return `${PB_URL}/api/files/${collectionId}/${record.id}/${filename}`
+  const fileVal = record?.[field]
+  if (!fileVal) return fallback || ''
+  if (
+    typeof fileVal === 'string' &&
+    (fileVal.startsWith('http://') || fileVal.startsWith('https://') || fileVal.startsWith('data:'))
+  ) {
+    return fileVal
+  }
+  return fallback || ''
 }
 
 export function prizeImage(prize: any): string {
+  if (prize?.image && (prize.image.startsWith('http') || prize.image.startsWith('data:'))) {
+    return prize.image
+  }
   return (
     getFileUrl(prize, 'image') ||
     `https://img.usecurling.com/p/400/300?q=${encodeURIComponent(prize?.name?.slice(0, 20) || 'prize')}`
@@ -37,6 +45,9 @@ export function prizeImage(prize: any): string {
 }
 
 export function bannerImage(banner: any): string {
+  if (banner?.image && (banner.image.startsWith('http') || banner.image.startsWith('data:'))) {
+    return banner.image
+  }
   return (
     getFileUrl(banner, 'image') ||
     `https://img.usecurling.com/p/800/300?q=${encodeURIComponent(banner?.title?.slice(0, 20) || 'promotion')}`
@@ -44,6 +55,9 @@ export function bannerImage(banner: any): string {
 }
 
 export function partnerLogo(partner: any): string {
+  if (partner?.logo && (partner.logo.startsWith('http') || partner.logo.startsWith('data:'))) {
+    return partner.logo
+  }
   return `https://img.usecurling.com/i?q=${encodeURIComponent(partner?.name?.slice(0, 15) || 'gas')}`
 }
 

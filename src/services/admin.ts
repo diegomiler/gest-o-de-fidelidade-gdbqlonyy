@@ -1,4 +1,4 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
 export interface AdminStats {
   totalSales: number
@@ -16,6 +16,15 @@ export interface CashbackRecordInfo {
   amount_generated: number
 }
 
+export interface AdminSaleItem {
+  id: string
+  product_code: string
+  name: string
+  quantity: number
+  unit_price: number
+  total_price: number
+}
+
 export interface AdminSale {
   id: string
   api_sale_id: string
@@ -27,6 +36,7 @@ export interface AdminSale {
   cb_fuel: number
   status: string
   cashback_records: CashbackRecordInfo[]
+  items?: AdminSaleItem[]
 }
 
 export interface ReleaseResult {
@@ -58,29 +68,6 @@ export interface AdminCustomer {
   cashbackFuel: number
 }
 
-export const getAdminStats = (): Promise<AdminStats> =>
-  pb.send('/backend/v1/admin/stats', { method: 'GET' })
-
-export const getAdminSales = (): Promise<{ sales: AdminSale[] }> =>
-  pb.send('/backend/v1/admin/sales', { method: 'GET' })
-
-export const getAdminCustomers = (): Promise<{ customers: AdminCustomer[] }> =>
-  pb.send('/backend/v1/admin/customers', { method: 'GET' })
-
-export const releaseCashback = (cashbackId: string): Promise<ReleaseResult> =>
-  pb.send('/backend/v1/cashback/release', {
-    method: 'POST',
-    body: JSON.stringify({ cashback_id: cashbackId }),
-    headers: { 'Content-Type': 'application/json' },
-  })
-
-export const releaseCashbackBatch = (cashbackIds: string[]): Promise<BatchReleaseResult> =>
-  pb.send('/backend/v1/cashback/release-batch', {
-    method: 'POST',
-    body: JSON.stringify({ cashback_ids: cashbackIds }),
-    headers: { 'Content-Type': 'application/json' },
-  })
-
 export interface ImportSalePayload {
   event?: string
   timestamp?: string
@@ -90,14 +77,33 @@ export interface ImportSalePayload {
     customerCpf: string
     totalAmount: number
     status?: string
+    payments?: Array<{ method: string; amount: number }>
+    items?: Array<{
+      codigo?: string
+      descricao?: string
+      quantidade?: number
+      'preço unitario'?: number
+      'preço total'?: number
+      name?: string
+      unit_price?: number
+      total_price?: number
+    }>
   }
 }
 
+export const getAdminStats = (): Promise<AdminStats> => apiService.getAdminStats()
+
+export const getAdminSales = (): Promise<{ sales: AdminSale[] }> => apiService.getAdminSales()
+
+export const getAdminCustomers = (): Promise<{ customers: AdminCustomer[] }> =>
+  apiService.getAdminCustomers()
+
+export const releaseCashback = (cashbackId: string): Promise<ReleaseResult> =>
+  apiService.releaseCashback(cashbackId)
+
+export const releaseCashbackBatch = (cashbackIds: string[]): Promise<BatchReleaseResult> =>
+  apiService.releaseCashbackBatch(cashbackIds)
+
 export const importSale = (
   payload: ImportSalePayload,
-): Promise<{ success: boolean; id: string; message: string }> =>
-  pb.send('/backend/v1/import/sale', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-    headers: { 'Content-Type': 'application/json' },
-  })
+): Promise<{ success: boolean; id: string; message: string }> => apiService.importSale(payload)

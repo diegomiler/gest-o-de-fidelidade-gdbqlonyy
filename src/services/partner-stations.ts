@@ -1,12 +1,8 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
-export const getPartnerStations = () =>
-  pb.collection('partner_stations').getFullList({
-    filter: 'active = true',
-  })
+export const getPartnerStations = () => apiService.getPartnerStations()
 
-export const getAllPartnerStations = () =>
-  pb.collection('partner_stations').getFullList({ sort: '-created' })
+export const getAllPartnerStations = () => apiService.getAllPartnerStations()
 
 export const createPartnerStation = (data: {
   name: string
@@ -15,7 +11,7 @@ export const createPartnerStation = (data: {
   state?: string
   phone?: string
   active?: boolean
-}) => pb.collection('partner_stations').create(data)
+}) => apiService.createPartnerStation(data)
 
 export const updatePartnerStation = (
   id: string,
@@ -27,6 +23,6 @@ export const updatePartnerStation = (
     phone: string
     active: boolean
   }>,
-) => pb.collection('partner_stations').update(id, data)
+) => apiService.updatePartnerStation(id, data)
 
-export const deletePartnerStation = (id: string) => pb.collection('partner_stations').delete(id)
+export const deletePartnerStation = (id: string) => apiService.deletePartnerStation(id)

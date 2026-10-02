@@ -1,19 +1,16 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
-export const getBanners = () =>
-  pb.collection('banners').getFullList({
-    filter: 'active = true',
-    sort: 'sort_order',
-  })
+export const getBanners = () => apiService.getBanners()
 
-export const getAllBanners = () => pb.collection('banners').getFullList({ sort: 'sort_order' })
+export const getAllBanners = () => apiService.getAllBanners()
 
-export const createBanner = (data: FormData) => pb.collection('banners').create(data)
+export const createBanner = (data: FormData | Record<string, unknown>) =>
+  apiService.createBanner(data)
 
-export const updateBanner = (id: string, data: FormData) =>
-  pb.collection('banners').update(id, data)
+export const updateBanner = (id: string, data: FormData | Record<string, unknown>) =>
+  apiService.updateBanner(id, data)
 
 export const updateBannerFields = (id: string, data: Record<string, unknown>) =>
-  pb.collection('banners').update(id, data)
+  apiService.updateBanner(id, data)
 
-export const deleteBanner = (id: string) => pb.collection('banners').delete(id)
+export const deleteBanner = (id: string) => apiService.deleteBanner(id)

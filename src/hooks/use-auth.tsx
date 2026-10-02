@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import pb from '@/lib/pocketbase/client'
+import { MockStore, type MockUser } from '@/services/mock/store'
 
 interface AuthContextType {
-  user: any
+  user: MockUser | null
   isAuthenticated: boolean
   signUp: (email: string, password: string, name: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
@@ -18,43 +18,82 @@ export const useAuth = () => {
   return context
 }
 
+const AUTH_USER_KEY = 'fidelidade_mock_auth_user'
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(pb.authStore.isValid ? pb.authStore.record : null)
-  const [isAuthenticated, setIsAuthenticated] = useState(pb.authStore.isValid)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<MockUser | null>(() => {
+    if (typeof window === 'undefined') return null
+    try {
+      const saved = localStorage.getItem(AUTH_USER_KEY)
+      if (saved) return JSON.parse(saved)
+    } catch {
+      /* intentionally ignored */
+    }
+    // Padrão: inicializa com o usuário principal seed (Diego Miler)
+    const initial = MockStore.getUserByEmail('diegomiler@live.com') || MockStore.getUsers()[0]
+    return initial || null
+  })
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!user)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const unsubscribe = pb.authStore.onChange((_token, record) => {
-      setUser(pb.authStore.isValid ? record : null)
-      setIsAuthenticated(pb.authStore.isValid)
-    })
-    if (pb.authStore.isValid) {
-      pb.collection('users')
-        .authRefresh()
-        .catch(() => pb.authStore.clear())
-        .finally(() => setLoading(false))
+    if (user) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user))
+      setIsAuthenticated(true)
     } else {
-      if (pb.authStore.record) pb.authStore.clear()
-      setLoading(false)
+      localStorage.removeItem(AUTH_USER_KEY)
+      setIsAuthenticated(false)
     }
-    return () => {
-      unsubscribe()
-    }
-  }, [])
+  }, [user])
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, _password: string, name: string) => {
     try {
-      await pb.collection('users').create({ email, password, passwordConfirm: password, name })
-      await pb.collection('users').authWithPassword(email, password)
+      let existing = MockStore.getUserByEmail(email)
+      if (existing) {
+        setUser(existing)
+        return { error: null }
+      }
+      const newUser: MockUser = {
+        id: `usr_${Date.now()}`,
+        name: name || email.split('@')[0],
+        email,
+        cpf: '000.000.000-00',
+        phone: '',
+        avatar: 'https://img.usecurling.com/ppl/medium?gender=female&seed=10',
+        status: true,
+        created: new Date().toISOString(),
+      }
+      const users = MockStore.getUsers()
+      users.push(newUser)
+      MockStore.saveUsers(users)
+      setUser(newUser)
       return { error: null }
     } catch (error) {
       return { error }
     }
   }
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, _password: string) => {
     try {
-      await pb.collection('users').authWithPassword(email, password)
+      let existing = MockStore.getUserByEmail(email)
+      if (!existing) {
+        // Se for o email padrão ou login de demonstração, cria automaticamente
+        existing = {
+          id: `usr_${Date.now()}`,
+          name: email.split('@')[0],
+          email,
+          cpf: '123.456.789-00',
+          phone: '(11) 98765-4321',
+          avatar: 'https://img.usecurling.com/ppl/medium?gender=male&seed=42',
+          status: true,
+          created: new Date().toISOString(),
+        }
+        const users = MockStore.getUsers()
+        users.push(existing)
+        MockStore.saveUsers(users)
+      }
+      setUser(existing)
       return { error: null }
     } catch (error) {
       return { error }
@@ -62,7 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const signOut = () => {
-    pb.authStore.clear()
+    setUser(null)
+    setIsAuthenticated(false)
+    localStorage.removeItem(AUTH_USER_KEY)
   }
 
   return (

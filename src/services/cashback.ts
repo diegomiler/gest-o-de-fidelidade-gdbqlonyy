@@ -1,18 +1,9 @@
-import pb from '@/lib/pocketbase/client'
+import { apiService } from './api'
 
-export const getCashbackByUser = (userId: string) =>
-  pb.collection('cashback').getFullList({
-    filter: `client = "${userId}"`,
-    sort: '-created',
-  })
+export const getCashbackByUser = (userId: string) => apiService.getCashbackByUser(userId)
 
 export const getReleasedCashbackByUser = (userId: string) =>
-  pb.collection('cashback').getFullList({
-    filter: `client = "${userId}" && status = "released"`,
-    sort: '-created',
-  })
+  apiService.getReleasedCashbackByUser(userId)
 
 export const getCashbackByPurchase = (purchaseId: string) =>
-  pb.collection('cashback').getFullList({
-    filter: `purchase = "${purchaseId}"`,
-  })
+  apiService.getCashbackByPurchase(purchaseId)

@@ -16,11 +16,8 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { getAdminCustomers, type AdminCustomer } from '@/services/admin'
 import { formatBRL, formatDate } from '@/lib/format'
 
-const PB_URL = import.meta.env.VITE_POCKETBASE_URL
-
 function getAvatarUrl(customer: AdminCustomer): string | undefined {
-  if (!customer.avatar) return undefined
-  return `${PB_URL}/api/files/users/${customer.id}/${customer.avatar}`
+  return customer.avatar || undefined
 }
 
 export default function AdminCustomers() {

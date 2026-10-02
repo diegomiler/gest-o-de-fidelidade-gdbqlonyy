@@ -184,10 +184,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-muted-foreground">Nenhum cliente encontrado.</p>
               )}
               {stats.topClients.map((c, i) => {
-                const avatarUrl = getFileUrl(
-                  { id: c.id, avatar: c.avatar, collectionName: 'users' },
-                  'avatar',
-                )
+                const avatarUrl = c.avatar || undefined
                 return (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
