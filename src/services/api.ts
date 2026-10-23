@@ -48,7 +48,40 @@ export interface BatchSaleResult {
   }>
 }
 
+export interface LoginIdentifier {
+  type: 'email' | 'cpf' | 'phone'
+  value: string
+}
+
+export interface RegisterPayload {
+  name: string
+  email: string
+  cpf: string
+  phone: string
+  password: string
+}
+
+export interface PublicLandingData {
+  settings: CashbackRules
+  featuredPrizes: MockPrize[]
+  activeBanners: MockBanner[]
+}
+
+export interface AuthResult {
+  user: MockUser
+  token?: string
+}
+
+export interface FieldErrorMap {
+  [field: string]: string
+}
+
 export interface IDataService {
+  // Autenticação & Landing pública
+  login(identifier: LoginIdentifier, password: string): Promise<AuthResult>
+  register(data: RegisterPayload): Promise<AuthResult>
+  getPublicLandingData(): Promise<PublicLandingData>
+
   // Configurações
   getCashbackRules(): Promise<CashbackRules>
   updateCashbackRules(rules: CashbackRules): Promise<CashbackRules>
@@ -108,7 +141,287 @@ export interface IDataService {
 // IMPLEMENTAÇÃO MOCKADA (In-memory + localStorage)
 // -------------------------------------------------------------------------
 
+// Simulação de latência de 300-600ms
+const simulateLatency = (min = 300, max = 600) => {
+  const ms = Math.floor(Math.random() * (max - min + 1)) + min
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// Controle de tentativas de login (rate limit simples no mock: 5 falhas seguidas => 30s de bloqueio)
+const RATE_LIMIT_STORAGE_KEY = 'fidelidade_mock_login_attempts'
+
+interface RateLimitState {
+  attempts: number
+  lockedUntil: number | null
+}
+
+function getRateLimitState(): RateLimitState {
+  if (typeof window === 'undefined') return { attempts: 0, lockedUntil: null }
+  try {
+    const raw = localStorage.getItem(RATE_LIMIT_STORAGE_KEY)
+    if (!raw) return { attempts: 0, lockedUntil: null }
+    return JSON.parse(raw)
+  } catch {
+    return { attempts: 0, lockedUntil: null }
+  }
+}
+
+function saveRateLimitState(state: RateLimitState) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(RATE_LIMIT_STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    /* ignore */
+  }
+}
+
 class MockDataServiceImpl implements IDataService {
+  async getPublicLandingData(): Promise<PublicLandingData> {
+    await simulateLatency(200, 400)
+    const settings = await this.getCashbackRules()
+    const allPrizes = await this.getPrizes()
+    const activeBanners = await this.getBanners()
+
+    // Retornar 2 a 3 prêmios reais em destaque
+    const featuredPrizes = allPrizes.slice(0, 3)
+
+    return {
+      settings,
+      featuredPrizes,
+      activeBanners,
+    }
+  }
+
+  async login(identifier: LoginIdentifier, password: string): Promise<AuthResult> {
+    await simulateLatency(300, 600)
+
+    // Checar bloqueio temporário por rate limit
+    const rl = getRateLimitState()
+    const now = Date.now()
+    if (rl.lockedUntil && rl.lockedUntil > now) {
+      const remainingSeconds = Math.ceil((rl.lockedUntil - now) / 1000)
+      const err: any = new Error(`Muitas tentativas incorretas. Tente novamente em ${remainingSeconds}s.`)
+      err.code = 'RATE_LIMIT_EXCEEDED'
+      err.status = 429
+      err.details = { retryAfter: remainingSeconds }
+      throw err
+    }
+
+    const { type, value } = identifier
+    let foundUser: MockUser | undefined
+
+    if (type === 'email') {
+      foundUser = MockStore.getUserByEmail(value.trim().toLowerCase())
+    } else if (type === 'cpf') {
+      foundUser = MockStore.getUserByCpf(value)
+    } else if (type === 'phone') {
+      foundUser = MockStore.getUserByPhone(value)
+    }
+
+    // No mock: senha Skip@Pass ou senha qualquer válida >= 6 dígitos para usuários existentes
+    // Se não encontrar ou senha não bater: erro genérico "Dados de acesso inválidos"
+    const isValidPassword = password && password.length >= 6
+    if (!foundUser || !isValidPassword) {
+      const newAttempts = (rl.attempts || 0) + 1
+      if (newAttempts >= 5) {
+        saveRateLimitState({ attempts: newAttempts, lockedUntil: Date.now() + 30000 })
+        const err: any = new Error('Muitas tentativas incorretas. Tente novamente em 30s.')
+        err.code = 'RATE_LIMIT_EXCEEDED'
+        err.status = 429
+        err.details = { retryAfter: 30 }
+        throw err
+      } else {
+        saveRateLimitState({ attempts: newAttempts, lockedUntil: null })
+      }
+
+      const err: any = new Error('Dados de acesso inválidos')
+      err.code = 'INVALID_CREDENTIALS'
+      err.status = 401
+      throw err
+    }
+
+    // Sucesso no login: resetar rate limit
+    saveRateLimitState({ attempts: 0, lockedUntil: null })
+
+    return {
+      user: foundUser,
+      token: `mock_jwt_token_${foundUser.id}_${Date.now()}`,
+    }
+  }
+
+  async register(data: RegisterPayload): Promise<AuthResult> {
+    await simulateLatency(300, 600)
+
+    const fieldErrors: Record<string, string> = {}
+
+    // Validações de campos obrigatórios
+    if (!data.name || data.name.trim().length < 3) {
+      fieldErrors.name = 'Nome deve ter pelo menos 3 caracteres'
+    }
+
+    // Validação e unicidade de e-mail
+    const cleanEmail = (data.email || '').trim().toLowerCase()
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      fieldErrors.email = 'E-mail inválido'
+    } else if (MockStore.getUserByEmail(cleanEmail)) {
+      fieldErrors.email = 'E-mail já cadastrado'
+    }
+
+    // Validação e unicidade de CPF
+    const cleanCpfDigits = (data.cpf || '').replace(/\D/g, '')
+    if (cleanCpfDigits.length !== 11) {
+      fieldErrors.cpf = 'CPF deve conter 11 dígitos'
+    } else if (MockStore.getUserByCpf(cleanCpfDigits)) {
+      fieldErrors.cpf = 'CPF já cadastrado'
+    }
+
+    // Validação e unicidade de telefone
+    let cleanPhone = (data.phone || '').replace(/\D/g, '')
+    if ((cleanPhone.length === 12 || cleanPhone.length === 13) && cleanPhone.startsWith('55')) {
+      cleanPhone = cleanPhone.slice(2)
+    }
+    if (cleanPhone.length < 10 || cleanPhone.length > 11) {
+      fieldErrors.phone = 'Telefone deve ter 10 ou 11 dígitos com DDD'
+    } else if (MockStore.getUserByPhone(cleanPhone)) {
+      fieldErrors.phone = 'Telefone já cadastrado'
+    }
+
+    // Senha mínima de 8 caracteres
+    if (!data.password || data.password.length < 8) {
+      fieldErrors.password = 'A senha deve ter no mínimo 8 caracteres'
+    }
+
+    if (Object.keys(fieldErrors).length > 0) {
+      const err: any = new Error('Erros de validação no cadastro')
+      err.code = 'VALIDATION_FAILED'
+      err.status = 422
+      err.data = { data: fieldErrors }
+      err.fieldErrors = fieldErrors
+      throw err
+    }
+
+    // Formatar CPF para exibição padrão: 000.000.000-00
+    const formattedCpf = cleanCpfDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+
+    // Formatar telefone para exibição padrão: (00) 00000-0000 ou (00) 0000-0000
+    const formattedPhone =
+      cleanPhone.length === 11
+        ? cleanPhone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+        : cleanPhone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+
+    const now = new Date().toISOString()
+    const newUserId = `usr_${Date.now()}`
+
+    const newUser: MockUser = {
+      id: newUserId,
+      name: data.name.trim(),
+      email: cleanEmail,
+      cpf: formattedCpf,
+      phone: formattedPhone,
+      avatar: `https://img.usecurling.com/ppl/medium?gender=female&seed=${Math.floor(Math.random() * 80) + 1}`,
+      status: true,
+      created: now,
+    }
+
+    // Salva novo usuário no store
+    const users = MockStore.getUsers()
+    users.push(newUser)
+    MockStore.saveUsers(users)
+
+    // VÍNCULO COM VENDAS: Ao cadastrar, associar ao cliente as compras/vendas já importadas com o mesmo CPF
+    // para que o cashback acumulado apareça no primeiro acesso do cliente.
+    const purchases = MockStore.getPurchases()
+    const updatedPurchases = purchases.map((p) => {
+      const pCpfClean = (p.cpf || '').replace(/\D/g, '')
+      if (pCpfClean === cleanCpfDigits) {
+        return {
+          ...p,
+          client: newUser.id,
+          client_name: newUser.name,
+          client_email: newUser.email,
+          updated: now,
+        }
+      }
+      return p
+    })
+    MockStore.savePurchases(updatedPurchases)
+
+    // Também vincular os registros de cashback correspondentes a essas compras
+    const userPurchaseIds = new Set(
+      updatedPurchases
+        .filter((p) => (p.cpf || '').replace(/\D/g, '') === cleanCpfDigits)
+        .map((p) => p.id),
+    )
+    if (userPurchaseIds.size > 0) {
+      const cashbackList = MockStore.getCashback()
+      const updatedCashback = cashbackList.map((cb) => {
+        if (userPurchaseIds.has(cb.purchase)) {
+          return {
+            ...cb,
+            client: newUser.id,
+            updated: now,
+          }
+        }
+        return cb
+      })
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
   async getCashbackRules(): Promise<CashbackRules> {
     const s = MockStore.getSettings()
     return {
@@ -791,6 +1104,24 @@ class RestDataServiceImpl implements IDataService {
       throw new Error(err?.error?.message || `HTTP error ${res.status}`)
     }
     return res.json()
+  }
+
+  async login(identifier: LoginIdentifier, password: string): Promise<AuthResult> {
+    return this.fetch<AuthResult>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ identifier, password }),
+    })
+  }
+
+  async register(data: RegisterPayload): Promise<AuthResult> {
+    return this.fetch<AuthResult>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async getPublicLandingData(): Promise<PublicLandingData> {
+    return this.fetch<PublicLandingData>('/landing')
   }
 
   async getCashbackRules(): Promise<CashbackRules> {

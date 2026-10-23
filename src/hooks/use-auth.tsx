@@ -1,11 +1,15 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { MockStore, type MockUser } from '@/services/mock/store'
+import { type MockUser } from '@/services/mock/store'
+import { apiService, type LoginIdentifier, type RegisterPayload } from '@/services/api'
 
 interface AuthContextType {
   user: MockUser | null
   isAuthenticated: boolean
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>
-  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signUp: (payload: RegisterPayload) => Promise<{ error: any; user?: MockUser }>
+  signIn: (
+    identifier: LoginIdentifier,
+    password: string,
+  ) => Promise<{ error: any; user?: MockUser }>
   signOut: () => void
   loading: boolean
 }
@@ -29,9 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       /* intentionally ignored */
     }
-    // Padrão: inicializa com o usuário principal seed (Diego Miler)
-    const initial = MockStore.getUserByEmail('diegomiler@live.com') || MockStore.getUsers()[0]
-    return initial || null
+    return null
   })
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => !!user)
@@ -47,56 +49,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [user])
 
-  const signUp = async (email: string, _password: string, name: string) => {
+  const signUp = async (payload: RegisterPayload) => {
     try {
-      let existing = MockStore.getUserByEmail(email)
-      if (existing) {
-        setUser(existing)
-        return { error: null }
-      }
-      const newUser: MockUser = {
-        id: `usr_${Date.now()}`,
-        name: name || email.split('@')[0],
-        email,
-        cpf: '000.000.000-00',
-        phone: '',
-        avatar: 'https://img.usecurling.com/ppl/medium?gender=female&seed=10',
-        status: true,
-        created: new Date().toISOString(),
-      }
-      const users = MockStore.getUsers()
-      users.push(newUser)
-      MockStore.saveUsers(users)
-      setUser(newUser)
-      return { error: null }
+      setLoading(true)
+      const res = await apiService.register(payload)
+      setUser(res.user)
+      return { error: null, user: res.user }
     } catch (error) {
       return { error }
+    } finally {
+      setLoading(false)
     }
   }
 
-  const signIn = async (email: string, _password: string) => {
+  const signIn = async (identifier: LoginIdentifier, password: string) => {
     try {
-      let existing = MockStore.getUserByEmail(email)
-      if (!existing) {
-        // Se for o email padrão ou login de demonstração, cria automaticamente
-        existing = {
-          id: `usr_${Date.now()}`,
-          name: email.split('@')[0],
-          email,
-          cpf: '123.456.789-00',
-          phone: '(11) 98765-4321',
-          avatar: 'https://img.usecurling.com/ppl/medium?gender=male&seed=42',
-          status: true,
-          created: new Date().toISOString(),
-        }
-        const users = MockStore.getUsers()
-        users.push(existing)
-        MockStore.saveUsers(users)
-      }
-      setUser(existing)
-      return { error: null }
+      setLoading(true)
+      const res = await apiService.login(identifier, password)
+      setUser(res.user)
+      return { error: null, user: res.user }
     } catch (error) {
       return { error }
+    } finally {
+      setLoading(false)
     }
   }
 

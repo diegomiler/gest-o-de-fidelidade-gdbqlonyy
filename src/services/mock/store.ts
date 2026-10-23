@@ -593,6 +593,19 @@ export const MockStore = {
     const clean = cpf.replace(/\D/g, '')
     return this.getUsers().find((u) => u.cpf.replace(/\D/g, '') === clean)
   },
+  getUserByPhone(phone: string): MockUser | undefined {
+    let clean = phone.replace(/\D/g, '')
+    if ((clean.length === 12 || clean.length === 13) && clean.startsWith('55')) {
+      clean = clean.slice(2)
+    }
+    return this.getUsers().find((u) => {
+      let uClean = (u.phone || '').replace(/\D/g, '')
+      if ((uClean.length === 12 || uClean.length === 13) && uClean.startsWith('55')) {
+        uClean = uClean.slice(2)
+      }
+      return uClean.length > 0 && uClean === clean
+    })
+  },
   updateUser(id: string, partial: Partial<MockUser>): MockUser {
     const users = this.getUsers()
     const idx = users.findIndex((u) => u.id === id)

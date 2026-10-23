@@ -2,6 +2,21 @@
 
 Este projeto foi criado de ponta a ponta com o [Skip](https://goskip.dev).
 
+## 👥 Credenciais e Dados para Teste (Ambiente Mock)
+
+Para testar o acesso flexível por **E-mail**, **CPF** ou **Telefone**:
+
+| Papel | Nome | E-mail | CPF | Telefone | Senha Padrão |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Admin / Cliente Seed 1** | Diego Miler | `diegomiler@live.com` | `123.456.789-00` (ou `12345678900`) | `(11) 98765-4321` (ou `11987654321`) | `Skip@Pass` |
+| **Cliente de Teste 2** | Maria Oliveira | `maria.oliveira@exemplo.com` | `234.567.890-11` (ou `23456789011`) | `(11) 97654-3210` (ou `11976543210`) | `Skip@Pass` |
+| **Cliente de Teste 3** | Carlos Eduardo | `carlos.santos@exemplo.com` | `345.678.901-22` (ou `34567890122`) | `(21) 96543-2109` (ou `21965432109`) | `Skip@Pass` |
+
+*Dica de teste:*
+- Você pode entrar em qualquer um dos usuários acima digitando apenas o E-mail, apenas o CPF (com ou sem pontuação) ou apenas o Telefone (com ou sem máscara/DDD).
+- Ao realizar um novo cadastro com CPF que tenha compras pré-importadas, o extrato é automaticamente vinculado no primeiro acesso.
+- Bloqueio temporário de segurança (Rate Limit): 5 tentativas incorretas bloqueiam temporariamente por 30s.
+
 ## 🚀 Stack Tecnológica
 
 - **React 19** - Biblioteca JavaScript para construção de interfaces

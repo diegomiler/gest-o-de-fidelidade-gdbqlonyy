@@ -50,6 +50,191 @@ Este documento especifica a interface de comunicação REST e a modelagem do ban
 
 ## 2. Endpoints da API REST
 
+### 2.0. Autenticação e Dados Públicos da Landing
+
+#### 2.0.1. Login por Identificador Flexível (E-mail, CPF ou Telefone)
+
+Permite autenticar o cliente informando e-mail, CPF (apenas dígitos ou formatado) ou telefone celular/fixo (com DDD, sem código do país 55).
+
+- **Método**: `POST`
+- **Path**: `/api/auth/login`
+- **Headers**: `Content-Type: application/json`
+- **Rate Limit**: Bloqueio de 30 segundos após 5 tentativas consecutivas incorretas (HTTP 429).
+
+**Corpo da Requisição**:
+
+```json
+{
+  "identifier": {
+    "type": "cpf",
+    "value": "12345678900"
+  },
+  "password": "MinhaSenhaSegura"
+}
+```
+
+_Ou com e-mail:_
+
+```json
+{
+  "identifier": {
+    "type": "email",
+    "value": "diegomiler@live.com"
+  },
+  "password": "MinhaSenhaSegura"
+}
+```
+
+_Ou com telefone:_
+
+```json
+{
+  "identifier": {
+    "type": "phone",
+    "value": "11987654321"
+  },
+  "password": "MinhaSenhaSegura"
+}
+```
+
+**Respostas**:
+
+- **200 OK**:
+
+```json
+{
+  "user": {
+    "id": "usr_diego",
+    "name": "Diego Miler",
+    "email": "diegomiler@live.com",
+    "cpf": "123.456.789-00",
+    "phone": "(11) 98765-4321",
+    "status": true,
+    "created": "2026-01-15T10:00:00.000Z"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+- **401 Unauthorized**:
+
+```json
+{
+  "error": {
+    "code": "INVALID_CREDENTIALS",
+    "message": "Dados de acesso inválidos"
+  }
+}
+```
+
+- **429 Too Many Requests**:
+
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Muitas tentativas incorretas. Tente novamente em 30s.",
+    "details": { "retryAfter": 30 }
+  }
+}
+```
+
+---
+
+#### 2.0.2. Cadastro de Cliente (Register)
+
+Cadastra um novo cliente com os três identificadores obrigatórios (nome, e-mail, CPF, telefone) e senha (mínimo 8 caracteres). Garante unicidade e vincula automaticamente vendas pré-importadas com o mesmo CPF.
+
+- **Método**: `POST`
+- **Path**: `/api/auth/register`
+- **Headers**: `Content-Type: application/json`
+
+**Corpo da Requisição**:
+
+```json
+{
+  "name": "Maria Silva Santos",
+  "email": "maria.silva@exemplo.com",
+  "cpf": "123.456.789-00",
+  "phone": "(11) 98765-4321",
+  "password": "MinhaSenhaForte123"
+}
+```
+
+**Respostas**:
+
+- **201 Created**:
+
+```json
+{
+  "user": {
+    "id": "usr_1710000000",
+    "name": "Maria Silva Santos",
+    "email": "maria.silva@exemplo.com",
+    "cpf": "123.456.789-00",
+    "phone": "(11) 98765-4321",
+    "status": true,
+    "created": "2026-07-22T10:00:00.000Z"
+  },
+  "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+- **422 Unprocessable Entity** (Erros por campo):
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Erros de validação no cadastro",
+    "data": {
+      "cpf": "CPF já cadastrado",
+      "email": "E-mail já cadastrado"
+    }
+  }
+}
+```
+
+---
+
+#### 2.0.3. Dados Públicos da Landing (getPublicLandingData)
+
+Retorna em uma única chamada pública os parâmetros de regras do programa (`settings`), prêmios em destaque e banners ativos, sem exigir token de autenticação.
+
+- **Método**: `GET`
+- **Path**: `/api/landing`
+
+**Resposta de Sucesso (200 OK)**:
+
+```json
+{
+  "settings": {
+    "store_percent": 8,
+    "fuel_percent": 2,
+    "min_purchase_amount": 100,
+    "min_purchase_usage": 500,
+    "min_redemption_amount": 50
+  },
+  "featuredPrizes": [
+    {
+      "id": "prz_001",
+      "name": "Vale Compras R$ 50",
+      "required_amount": 50,
+      "image": "https://img.usecurling.com/p/400/300?q=gift%20card&color=blue"
+    }
+  ],
+  "activeBanners": [
+    {
+      "id": "ban_001",
+      "title": "Especial Semana de Ofertas",
+      "image": "https://img.usecurling.com/p/800/300?q=shopping&color=purple"
+    }
+  ]
+}
+```
+
+---
+
 ### 2.1. Importação de Venda Unitária
 
 Processa e cria uma venda individual vinda de ERP/PDV, calcula automaticamente os percentuais de cashback vigentes de acordo com a regra configurada (`settings`), associa ou cria o cliente com base no CPF e registra os itens e formas de pagamento.
