@@ -8,6 +8,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute'
 import Layout from './components/Layout'
 import NotFound from './pages/NotFound'
 import Login from './pages/Login'
+import Landing from './pages/Landing'
 
 import ConsumerDashboard from './pages/consumer/Dashboard'
 import ConsumerStatement from './pages/consumer/Statement'
@@ -30,10 +31,11 @@ const App = () => (
         <Toaster />
         <Sonner />
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<ConsumerDashboard />} />
+              <Route path="/conta" element={<ConsumerDashboard />} />
               <Route path="/extrato" element={<ConsumerStatement />} />
               <Route path="/premios" element={<ConsumerRewards />} />
               <Route path="/perfil" element={<ConsumerProfile />} />

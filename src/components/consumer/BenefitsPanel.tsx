@@ -51,22 +51,22 @@ export function BenefitsPanel({ compact = false }: BenefitsPanelProps) {
   const fuelPercent = data?.settings?.fuel_percent ?? 2
   const minPurchase = data?.settings?.min_purchase_amount ?? 100
   const activeBanners = data?.activeBanners ?? []
-  const featuredPrizes = data?.featuredPrizes ?? []
+  const featuredPrizes = (data?.featuredPrizes ?? []).slice(0, 3)
 
   // Versão compacta para Mobile (< 1024px)
   if (compact) {
     return (
       <div className="space-y-3">
         {/* Bloco compacto de benefícios com destaque para cashback */}
-        <div className="rounded-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 text-white p-4 shadow-md">
+        <div className="rounded-2xl bg-gradient-to-br from-brand-secondary via-[#192b4a] to-brand-secondary text-white p-4 shadow-md border border-white/10">
           <div className="flex items-center gap-2 mb-2">
             <span className="inline-flex items-center gap-1 bg-white/20 px-2.5 py-0.5 rounded-full text-xs font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <Sparkles className="w-3.5 h-3.5 text-brand-accent" />
               Programa Fidelidade
             </span>
           </div>
 
-          <h2 className="text-lg font-bold leading-tight">
+          <h2 className="font-heading text-lg font-bold leading-tight">
             Ganhe até <span className="text-amber-300">{storePercent}%</span> de volta na loja e{' '}
             <span className="text-amber-300">{fuelPercent}%</span> no combustível
           </h2>
@@ -123,12 +123,12 @@ export function BenefitsPanel({ compact = false }: BenefitsPanelProps) {
       <div className="space-y-2">
         <Badge
           variant="outline"
-          className="border-primary/30 text-primary bg-primary/5 px-3 py-1 text-xs"
+          className="border-brand-primary/30 text-brand-primary-dark bg-brand-primary-tint px-3 py-1 text-xs font-semibold"
         >
-          <Sparkles className="w-3.5 h-3.5 mr-1 text-primary" />
+          <Sparkles className="w-3.5 h-3.5 mr-1 text-brand-primary-dark" />
           Vantagens Exclusivas para Você
         </Badge>
-        <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 leading-tight">
+        <h1 className="font-heading text-3xl font-extrabold tracking-tight text-brand-secondary leading-tight">
           Suas compras do dia a dia viram dinheiro de volta e prêmios.
         </h1>
         <p className="text-slate-600 text-sm">
@@ -138,58 +138,56 @@ export function BenefitsPanel({ compact = false }: BenefitsPanelProps) {
       </div>
 
       {/* Destaque de Cashback Dinâmico */}
-      <Card className="border-none shadow-md bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-900 text-white overflow-hidden relative">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="p-2 rounded-xl bg-white/10 backdrop-blur-md">
-                <ShoppingBag className="w-5 h-5 text-amber-300" />
-              </span>
-              <div>
-                <p className="text-xs uppercase tracking-wider text-indigo-200 font-semibold">
-                  Taxas Atuais de Retorno
-                </p>
-                <h3 className="text-lg font-bold">Cashback Garantido</h3>
-              </div>
+      <div className="border-none shadow-xl bg-gradient-to-br from-[#1e3051] via-[#192b4a] to-[#1e3051] text-white overflow-hidden relative rounded-2xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="p-2 rounded-xl bg-white/10 backdrop-blur-md">
+              <ShoppingBag className="w-5 h-5 text-brand-accent" />
+            </span>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-slate-300 font-semibold">
+                Taxas Atuais de Retorno
+              </p>
+              <h3 className="font-heading text-lg font-bold">Cashback Garantido</h3>
             </div>
-            <Badge className="bg-amber-400 text-slate-950 font-bold hover:bg-amber-400 border-none">
-              Ativo
-            </Badge>
           </div>
+          <Badge className="bg-brand-accent text-brand-secondary font-bold hover:bg-brand-accent border-none">
+            Ativo
+          </Badge>
+        </div>
 
-          {loading ? (
-            <div className="grid grid-cols-2 gap-3">
-              <Skeleton className="h-16 bg-white/20 rounded-xl" />
-              <Skeleton className="h-16 bg-white/20 rounded-xl" />
+        {loading ? (
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-16 bg-white/20 rounded-xl" />
+            <Skeleton className="h-16 bg-white/20 rounded-xl" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+              <p className="text-xs text-slate-200">Compras na Loja</p>
+              <p className="font-heading text-2xl font-black text-amber-300">{storePercent}% de volta</p>
             </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                <p className="text-xs text-indigo-100">Compras na Loja</p>
-                <p className="text-2xl font-black text-amber-300">{storePercent}% de volta</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                <p className="text-xs text-indigo-100">Abastecimento</p>
-                <p className="text-2xl font-black text-amber-300">{fuelPercent}% no combustível</p>
-              </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+              <p className="text-xs text-slate-200">Abastecimento</p>
+              <p className="font-heading text-2xl font-black text-amber-300">{fuelPercent}% no combustível</p>
             </div>
-          )}
+          </div>
+        )}
 
-          <p className="text-xs text-indigo-200 mt-4 flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            Saldo, extrato e histórico de compras centralizados em um só lugar.
-          </p>
-        </CardContent>
-      </Card>
+        <p className="text-xs text-slate-300 mt-4 flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          Saldo, extrato e histórico de compras centralizados em um só lugar.
+        </p>
+      </div>
 
       {/* Como funciona em 3 passos */}
       <div className="space-y-3">
-        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">
+        <h3 className="font-heading text-sm font-bold text-slate-900 uppercase tracking-wide">
           Como funciona o programa
         </h3>
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs mb-2">
+            <div className="w-7 h-7 rounded-lg bg-brand-primary-tint text-brand-primary-dark flex items-center justify-center font-bold text-xs mb-2">
               1
             </div>
             <div>
@@ -201,7 +199,7 @@ export function BenefitsPanel({ compact = false }: BenefitsPanelProps) {
           </div>
 
           <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs mb-2">
+            <div className="w-7 h-7 rounded-lg bg-brand-primary-tint text-brand-primary-dark flex items-center justify-center font-bold text-xs mb-2">
               2
             </div>
             <div>
@@ -213,7 +211,7 @@ export function BenefitsPanel({ compact = false }: BenefitsPanelProps) {
           </div>
 
           <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-sm flex flex-col justify-between">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-xs mb-2">
+            <div className="w-7 h-7 rounded-lg bg-brand-primary-tint text-brand-primary-dark flex items-center justify-center font-bold text-xs mb-2">
               3
             </div>
             <div>
@@ -229,8 +227,8 @@ export function BenefitsPanel({ compact = false }: BenefitsPanelProps) {
       {/* Prévia de 2 a 3 prêmios reais do catálogo */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
-            <Gift className="w-4 h-4 text-primary" />
+          <h3 className="font-heading text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-1.5">
+            <Gift className="w-4 h-4 text-brand-primary-dark" />
             Prêmios do Catálogo
           </h3>
           <span className="text-xs text-slate-500">Troque seu saldo</span>

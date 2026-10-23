@@ -18,6 +18,7 @@ import {
   type MockBanner,
   type MockPartnerStation,
   type MockUser,
+  type MockContactLead,
 } from './mock/store'
 import type {
   AdminSale,
@@ -27,7 +28,7 @@ import type {
   BatchReleaseResult,
   ImportSalePayload,
 } from './admin'
-import type { CashbackRules } from './settings'
+import type { CashbackRules, ProgramInfo } from './settings'
 
 export type DataDriverType = 'mock' | 'rest'
 
@@ -61,10 +62,23 @@ export interface RegisterPayload {
   password: string
 }
 
+/**
+ * Dados da página inicial pública. Cada bloco é independente: quando uma fonte falha,
+ * o campo vem nulo/vazio e apenas a seção correspondente é ocultada na interface.
+ */
 export interface PublicLandingData {
-  settings: CashbackRules
+  settings: CashbackRules | null
   featuredPrizes: MockPrize[]
   activeBanners: MockBanner[]
+  stations: MockPartnerStation[]
+  contact: { phone: string; whatsapp: string; email: string } | null
+  company: { name: string; cnpj: string } | null
+}
+
+export interface ContactLeadPayload {
+  name: string
+  phone: string
+  message: string
 }
 
 export interface AuthResult {
@@ -85,6 +99,12 @@ export interface IDataService {
   // Configurações
   getCashbackRules(): Promise<CashbackRules>
   updateCashbackRules(rules: CashbackRules): Promise<CashbackRules>
+  getProgramInfo(): Promise<ProgramInfo>
+  updateProgramInfo(info: ProgramInfo): Promise<ProgramInfo>
+
+  // Leads da página pública
+  submitContactLead(data: ContactLeadPayload): Promise<MockContactLead>
+  getContactLeads(): Promise<MockContactLead[]>
 
   // Vendas e Admin
   getAdminSales(): Promise<{ sales: AdminSale[] }>
@@ -178,17 +198,34 @@ function saveRateLimitState(state: RateLimitState) {
 class MockDataServiceImpl implements IDataService {
   async getPublicLandingData(): Promise<PublicLandingData> {
     await simulateLatency(200, 400)
-    const settings = await this.getCashbackRules()
-    const allPrizes = await this.getPrizes()
-    const activeBanners = await this.getBanners()
 
-    // Retornar 2 a 3 prêmios reais em destaque
-    const featuredPrizes = allPrizes.slice(0, 3)
+    // Cada fonte é resolvida isoladamente: se uma falhar, as demais continuam disponíveis
+    const [settings, prizes, banners, stations, program] = await Promise.allSettled([
+      this.getCashbackRules(),
+      this.getPrizes(),
+      this.getBanners(),
+      this.getPartnerStations(),
+      this.getProgramInfo(),
+    ])
+    const valueOf = <T>(r: PromiseSettledResult<T>): T | null =>
+      r.status === 'fulfilled' ? r.value : null
+
+    const info = valueOf(program)
 
     return {
-      settings,
-      featuredPrizes,
-      activeBanners,
+      settings: valueOf(settings),
+      // 3 a 4 prêmios reais do catálogo em destaque
+      featuredPrizes: (valueOf(prizes) ?? []).slice(0, 4),
+      activeBanners: valueOf(banners) ?? [],
+      stations: valueOf(stations) ?? [],
+      contact: info
+        ? {
+            phone: info.telefone_atendimento,
+            whatsapp: info.whatsapp,
+            email: info.email_atendimento,
+          }
+        : null,
+      company: info ? { name: info.nome_programa, cnpj: info.cnpj } : null,
     }
   }
 
@@ -375,616 +412,6 @@ class MockDataServiceImpl implements IDataService {
 
   async getCashbackRules(): Promise<CashbackRules> {
     const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    if (userPurchaseIds.size > 0) {
-      const cashbackList = MockStore.getCashback()
-      const updatedCashback = cashbackList.map((cb) => {
-        if (userPurchaseIds.has(cb.purchase)) {
-          return {
-            ...cb,
-            client: newUser.id,
-            updated: now,
-          }
-        }
-        return cb
-      })
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-    return {
-      store_percent: s.store_percent,
-      fuel_percent: s.fuel_percent,
-      min_purchase_amount: s.min_purchase_amount,
-      min_redemption_amount: s.min_redemption_amount,
-      min_purchase_usage: s.min_purchase_usage,
-    }
-  }
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-    return {
-      store_percent: s.store_percent,
-      fuel_percent: s.fuel_percent,
-      min_purchase_amount: s.min_purchase_amount,
-      min_redemption_amount: s.min_redemption_amount,
-      min_purchase_usage: s.min_purchase_usage,
-    }
-  }
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-	    return {
-	      store_percent: s.store_percent,
-	      fuel_percent: s.fuel_percent,
-	      min_purchase_amount: s.min_purchase_amount,
-	      min_redemption_amount: s.min_redemption_amount,
-	      min_purchase_usage: s.min_purchase_usage,
-	    }
-	  }
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-=======
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	      MockStore.saveCashback(updatedCashback)
-	    }
-
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-=======
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	    if (userPurchaseIds.size > 0) {
-	      const cashbackList = MockStore.getCashback()
-	      const updatedCashback = cashbackList.map((cb) => {
-	        if (userPurchaseIds.has(cb.purchase)) {
-	          return {
-	            ...cb,
-	            client: newUser.id,
-	            updated: now,
-	          }
-	        }
-	        return cb
-	      })
-	      MockStore.saveCashback(updatedCashback)
-	    }
-
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	      MockStore.saveCashback(updatedCashback)
-	    }
-
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-=======
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	      MockStore.saveCashback(updatedCashback)
-	    }
-
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-=======
-	    return {
-	      user: newUser,
-	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-	    }
-	  }
-
-	  async getCashbackRules(): Promise<CashbackRules> {
-=======
-	  async getCashbackRules(): Promise<CashbackRules> {
-	    const s = MockStore.getSettings()
-	    return {
-	      store_percent: s.store_percent,
-	      fuel_percent: s.fuel_percent,
-	      min_purchase_amount: s.min_purchase_amount,
-	      min_redemption_amount: s.min_redemption_amount,
-	      min_purchase_usage: s.min_purchase_usage,
-	    }
-	  }
-
-	  async updateCashbackRules(rules: CashbackRules): Promise<CashbackRules> {
-=======
-    // Também vincular os registros de cashback correspondentes a essas compras
-    const userPurchaseIds = new Set(
-      updatedPurchases
-        .filter((p) => (p.cpf || '').replace(/\D/g, '') === cleanCpfDigits)
-        .map((p) => p.id),
-    )
-    if (userPurchaseIds.size > 0) {
-      const cashbackList = MockStore.getCashback()
-      const updatedCashback = cashbackList.map((cb) => {
-        if (userPurchaseIds.has(cb.purchase)) {
-          return {
-            ...cb,
-            client: newUser.id,
-            updated: now,
-          }
-        }
-        return cb
-      })
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-    return {
-      store_percent: s.store_percent,
-      fuel_percent: s.fuel_percent,
-      min_purchase_amount: s.min_purchase_amount,
-      min_redemption_amount: s.min_redemption_amount,
-      min_purchase_usage: s.min_purchase_usage,
-    }
-  }
-
-  async updateCashbackRules(rules: CashbackRules): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    if (userPurchaseIds.size > 0) {
-      const cashbackList = MockStore.getCashback()
-      const updatedCashback = cashbackList.map((cb) => {
-        if (userPurchaseIds.has(cb.purchase)) {
-          return {
-            ...cb,
-            client: newUser.id,
-            updated: now,
-          }
-        }
-        return cb
-      })
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-    return {
-      store_percent: s.store_percent,
-      fuel_percent: s.fuel_percent,
-      min_purchase_amount: s.min_purchase_amount,
-      min_redemption_amount: s.min_redemption_amount,
-      min_purchase_usage: s.min_purchase_usage,
-    }
-  }
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-    return {
-      store_percent: s.store_percent,
-      fuel_percent: s.fuel_percent,
-      min_purchase_amount: s.min_purchase_amount,
-      min_redemption_amount: s.min_redemption_amount,
-      min_purchase_usage: s.min_purchase_usage,
-    }
-  }
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    if (userPurchaseIds.size > 0) {
-      const cashbackList = MockStore.getCashback()
-      const updatedCashback = cashbackList.map((cb) => {
-        if (userPurchaseIds.has(cb.purchase)) {
-          return {
-            ...cb,
-            client: newUser.id,
-            updated: now,
-          }
-        }
-        return cb
-      })
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-      MockStore.saveCashback(updatedCashback)
-    }
-
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
-=======
-    return {
-      user: newUser,
-      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
-    }
-  }
-
-  async getCashbackRules(): Promise<CashbackRules> {
-=======
-  async getCashbackRules(): Promise<CashbackRules> {
-    const s = MockStore.getSettings()
     return {
       store_percent: s.store_percent,
       fuel_percent: s.fuel_percent,
@@ -1006,6 +433,77 @@ class MockDataServiceImpl implements IDataService {
     }
     MockStore.saveSettings(updated)
     return this.getCashbackRules()
+  }
+
+  async getProgramInfo(): Promise<ProgramInfo> {
+    const s = MockStore.getSettings()
+    return {
+      nome_programa: s.nome_programa,
+      cnpj: s.cnpj,
+      whatsapp: s.whatsapp,
+      telefone_atendimento: s.telefone_atendimento,
+      email_atendimento: s.email_atendimento,
+    }
+  }
+
+  async updateProgramInfo(info: ProgramInfo): Promise<ProgramInfo> {
+    await simulateLatency(200, 400)
+    const current = MockStore.getSettings()
+    MockStore.saveSettings({
+      ...current,
+      nome_programa: (info.nome_programa || '').trim(),
+      cnpj: (info.cnpj || '').trim(),
+      whatsapp: (info.whatsapp || '').trim(),
+      telefone_atendimento: (info.telefone_atendimento || '').trim(),
+      email_atendimento: (info.email_atendimento || '').trim(),
+    })
+    return this.getProgramInfo()
+  }
+
+  async submitContactLead(data: ContactLeadPayload): Promise<MockContactLead> {
+    await simulateLatency(300, 600)
+
+    const fieldErrors: Record<string, string> = {}
+    const name = (data.name || '').trim()
+    const message = (data.message || '').trim()
+    let phone = (data.phone || '').replace(/\D/g, '')
+    if ((phone.length === 12 || phone.length === 13) && phone.startsWith('55')) {
+      phone = phone.slice(2)
+    }
+
+    if (name.length < 3) fieldErrors.name = 'Informe seu nome (mínimo 3 letras)'
+    if (phone.length < 10 || phone.length > 11) {
+      fieldErrors.phone = 'Informe um telefone com DDD (10 ou 11 dígitos)'
+    }
+    if (message.length < 3) fieldErrors.message = 'Escreva uma mensagem'
+    if (message.length > 1000) fieldErrors.message = 'A mensagem deve ter até 1000 caracteres'
+
+    if (Object.keys(fieldErrors).length > 0) {
+      const err: any = new Error('Erros de validação no formulário de contato')
+      err.code = 'VALIDATION_FAILED'
+      err.status = 422
+      err.fieldErrors = fieldErrors
+      throw err
+    }
+
+    const formattedPhone =
+      phone.length === 11
+        ? phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3')
+        : phone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3')
+
+    const lead: MockContactLead = {
+      id: `lead_${Date.now()}`,
+      name,
+      phone: formattedPhone,
+      message,
+      created: new Date().toISOString(),
+    }
+    MockStore.saveLeads([lead, ...MockStore.getLeads()])
+    return lead
+  }
+
+  async getContactLeads(): Promise<MockContactLead[]> {
+    return MockStore.getLeads()
   }
 
   async getAdminSales(): Promise<{ sales: AdminSale[] }> {
@@ -1683,6 +1181,25 @@ class RestDataServiceImpl implements IDataService {
 
   async getPublicLandingData(): Promise<PublicLandingData> {
     return this.fetch<PublicLandingData>('/landing')
+  }
+
+  async getProgramInfo(): Promise<ProgramInfo> {
+    return this.fetch<ProgramInfo>('/settings/program')
+  }
+  async updateProgramInfo(info: ProgramInfo): Promise<ProgramInfo> {
+    return this.fetch<ProgramInfo>('/settings/program', {
+      method: 'PUT',
+      body: JSON.stringify(info),
+    })
+  }
+  async submitContactLead(data: ContactLeadPayload): Promise<MockContactLead> {
+    return this.fetch<MockContactLead>('/contact-leads', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+  async getContactLeads(): Promise<MockContactLead[]> {
+    return this.fetch<MockContactLead[]>('/contact-leads')
   }
 
   async getCashbackRules(): Promise<CashbackRules> {

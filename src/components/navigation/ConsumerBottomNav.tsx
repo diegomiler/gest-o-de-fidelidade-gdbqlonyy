@@ -3,7 +3,7 @@ import { Home, List, Gift, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const items = [
-  { href: '/', icon: Home, label: 'Início' },
+  { href: '/conta', icon: Home, label: 'Início' },
   { href: '/extrato', icon: List, label: 'Extrato' },
   { href: '/premios', icon: Gift, label: 'Prêmios' },
   { href: '/perfil', icon: User, label: 'Perfil' },

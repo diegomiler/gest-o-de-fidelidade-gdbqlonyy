@@ -58,7 +58,7 @@ export function AdminHeader() {
 
       <div className="flex items-center gap-2 ml-auto shrink-0">
         <Button variant="outline" size="sm" asChild>
-          <Link to="/">
+          <Link to="/conta">
             <ArrowLeftRight className="h-4 w-4 mr-2" />
             <span className="hidden md:inline">Visão Cliente</span>
             <span className="md:hidden">Cliente</span>

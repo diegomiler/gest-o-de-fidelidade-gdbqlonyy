@@ -1,6 +1,7 @@
-/* Main entry point for the application - renders the root React component */
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
+import './styles/tokens.css'
+import './styles/landing.css'
 import './main.css'
 
 // @skip-protected: Do not remove. Required for React rendering.

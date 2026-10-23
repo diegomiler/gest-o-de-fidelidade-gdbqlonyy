@@ -199,7 +199,7 @@ Cadastra um novo cliente com os três identificadores obrigatórios (nome, e-mai
 
 #### 2.0.3. Dados Públicos da Landing (getPublicLandingData)
 
-Retorna em uma única chamada pública os parâmetros de regras do programa (`settings`), prêmios em destaque e banners ativos, sem exigir token de autenticação.
+Retorna em uma única chamada pública os dados da página inicial: regras do programa (`settings`), prêmios em destaque (3 a 4), banners ativos, postos parceiros ativos, canais de contato e dados da empresa, sem exigir token de autenticação. Cada bloco é independente: se uma fonte falhar, o campo vem `null`/lista vazia e apenas a seção correspondente é ocultada.
 
 - **Método**: `GET`
 - **Path**: `/api/landing`
@@ -220,6 +220,7 @@ Retorna em uma única chamada pública os parâmetros de regras do programa (`se
       "id": "prz_001",
       "name": "Vale Compras R$ 50",
       "required_amount": 50,
+      "stock": 25,
       "image": "https://img.usecurling.com/p/400/300?q=gift%20card&color=blue"
     }
   ],
@@ -229,7 +230,16 @@ Retorna em uma única chamada pública os parâmetros de regras do programa (`se
       "title": "Especial Semana de Ofertas",
       "image": "https://img.usecurling.com/p/800/300?q=shopping&color=purple"
     }
-  ]
+  ],
+  "stations": [
+    { "id": "pt_001", "name": "Posto Avenida Centro", "city": "São Paulo", "state": "SP" }
+  ],
+  "contact": {
+    "phone": "(11) 3214-5500",
+    "whatsapp": "(11) 98765-4321",
+    "email": "atendimento@gestaofidelidade.com.br"
+  },
+  "company": { "name": "Gestão de Fidelidade", "cnpj": "12.345.678/0001-90" }
 }
 ```
 
@@ -688,6 +698,33 @@ As regras retornam e recebem campos planos na raiz do JSON (não serializados co
 #### Resposta (**200 OK**):
 
 Retorna o mesmo objeto com os valores validados e atualizados.
+
+---
+
+### 2.10. Dados da Empresa e Canais de Atendimento
+
+Colunas individuais da tabela de settings (sem JSON), exibidas na página inicial pública. Campos de contato em branco ocultam o respectivo canal.
+
+- **Métodos**: `GET` e `PUT`
+- **Path**: `/api/settings/program`
+
+```json
+{
+  "nome_programa": "Gestão de Fidelidade",
+  "cnpj": "12.345.678/0001-90",
+  "whatsapp": "(11) 98765-4321",
+  "telefone_atendimento": "(11) 3214-5500",
+  "email_atendimento": "atendimento@gestaofidelidade.com.br"
+}
+```
+
+---
+
+### 2.11. Leads de Contato da Página Pública
+
+- **Path**: `/api/contact-leads`
+- `POST` (público, sem token): grava um lead. Corpo: `{ "name": "Maria", "phone": "(11) 98765-4321", "message": "Quero saber mais" }`. Validação: nome ≥ 3 caracteres, telefone com 10/11 dígitos (DDD), mensagem de 3 a 1000 caracteres. Retorna **422** com `fieldErrors` em caso de erro.
+- `GET` (admin): lista os leads, mais recentes primeiro. Cada item: `{ "id", "name", "phone", "message", "created" }`.
 
 ---
 

@@ -50,11 +50,13 @@ export function ForgotPasswordDialog({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
+          <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary-tint text-brand-primary-dark">
             <KeyRound className="h-5 w-5" />
           </div>
-          <DialogTitle className="text-center">Recuperação de Senha</DialogTitle>
-          <DialogDescription className="text-center text-sm">
+          <DialogTitle className="text-center font-heading text-lg font-bold text-slate-900">
+            Recuperação de Senha
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm text-slate-600">
             {submitted
               ? 'Instruções de redefinição foram processadas.'
               : 'Informe seu e-mail, CPF ou telefone cadastrado para receber as instruções de recuperação.'}
@@ -71,7 +73,10 @@ export function ForgotPasswordDialog({
               verificação para redefinir sua senha com segurança.
             </p>
             <DialogFooter className="sm:justify-center">
-              <Button onClick={() => handleClose(false)} className="w-full sm:w-auto">
+              <Button
+                onClick={() => handleClose(false)}
+                className="w-full sm:w-auto bg-brand-primary-dark hover:bg-brand-primary text-white"
+              >
                 Voltar para o Login
               </Button>
             </DialogFooter>
@@ -79,7 +84,9 @@ export function ForgotPasswordDialog({
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="forgot-identifier">E-mail, CPF ou Telefone</Label>
+              <Label htmlFor="forgot-identifier" className="text-xs font-semibold text-slate-700">
+                E-mail, CPF ou Telefone
+              </Label>
               <Input
                 id="forgot-identifier"
                 value={identifier}
@@ -87,6 +94,7 @@ export function ForgotPasswordDialog({
                 placeholder="Seu identificador de acesso"
                 required
                 autoFocus
+                className="focus-visible:ring-brand-primary"
               />
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
@@ -98,7 +106,11 @@ export function ForgotPasswordDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading || !identifier.trim()}>
+              <Button
+                type="submit"
+                disabled={loading || !identifier.trim()}
+                className="bg-brand-primary-dark hover:bg-brand-primary text-white"
+              >
                 {loading ? 'Enviando...' : 'Enviar Instruções'}
               </Button>
             </DialogFooter>

@@ -38,7 +38,7 @@ export function AdminSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="h-16 flex items-center px-4 border-b">
-        <Link to="/" className="flex items-center gap-2 w-full">
+        <Link to="/admin" className="flex items-center gap-2 w-full">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white font-bold">
             A
           </div>

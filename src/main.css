@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -6,6 +7,38 @@
 
 @layer base {
   :root {
+    /* Cores de marca Incentive (Design Tokens) */
+    --color-primary: #009b8a;
+    --color-primary-dark: #00796b;
+    --color-primary-tint: #e3f4f1;
+    --color-secondary: #1e3051;
+    --color-accent: #ff7f6a;
+    --color-on-primary: #ffffff;
+    --color-on-accent: #1e3051;
+    --color-on-dark: #ffffff;
+    --color-on-dark-muted: #c9d4e3;
+    --color-bg: #ffffff;
+    --color-bg-alt: #f2f5f7;
+    --color-surface: #ffffff;
+    --color-border: #dbe3ea;
+    --color-overlay: rgba(30, 48, 81, 0.72);
+    --color-text: #2a2a2c;
+    --color-text-muted: #566170;
+    --color-focus: #00796b;
+    --color-focus-on-dark: #ff7f6a;
+    --color-success: #00796b;
+    --color-danger: #b3261e;
+    --color-warning-tint: #fff1ee;
+    --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
+    --font-body: 'Outfit', 'Inter', system-ui, sans-serif;
+    --radius-brand: 1rem;
+    --radius-control: 0.75rem;
+    --radius-pill: 9999px;
+    --section-space: clamp(3rem, 6vw, 6rem);
+    --section-space-sm: clamp(2rem, 4vw, 3.5rem);
+    --container-max: 75rem;
+    --container-gutter: clamp(1rem, 4vw, 2.5rem);
+
     --background: 210 40% 98%;
     --foreground: 222.2 84% 4.9%;
 

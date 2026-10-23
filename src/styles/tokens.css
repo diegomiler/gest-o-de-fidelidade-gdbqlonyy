@@ -1,0 +1,85 @@
+/**
+ * TOKENS DE DESIGN DA PÁGINA INICIAL PÚBLICA
+ * ---------------------------------------------------------------------------
+ * Único arquivo a editar para trocar cores, fontes, raios, sombras e espaçamentos
+ * de toda a landing ("/"). Nenhum componente da landing usa cores soltas: tudo
+ * referencia estas variáveis (via classes `brand-*` do Tailwind ou via landing.css).
+ *
+ * Paleta extraída da identidade visual de https://incentive.com.br/solucoes/club-pontos/
+ * (teal, grafite, coral e azul-marinho; tipografia Outfit).
+ *
+ * Contraste WCAG AA validado (razão mínima 4.5:1 para texto, 3:1 para UI):
+ *   on-primary  (#fff)     sobre primary-dark (#00796b)  → 5.3:1
+ *   on-accent   (#1e3051)  sobre accent       (#ff7f6a)  → 5.3:1
+ *   text        (#2a2a2c)  sobre bg / bg-alt              → > 13:1
+ *   text-muted  (#566170)  sobre bg / bg-alt              → > 5.5:1
+ *   on-dark     (#fff)     sobre secondary    (#1e3051)  → 12:1
+ *   on-dark-muted (#c9d4e3) sobre secondary               → 8:1
+ */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Cores de marca */
+  --color-primary: #009b8a;
+  --color-primary-dark: #00796b; /* fundo de botões e links (contraste AA com branco) */
+  --color-primary-tint: #e3f4f1; /* superfícies de destaque suaves */
+  --color-secondary: #1e3051; /* seções escuras: hero, rodapé */
+  --color-accent: #ff7f6a; /* botões de ação, números dos passos */
+
+  /* Texto sobre cores de marca */
+  --color-on-primary: #ffffff;
+  --color-on-accent: #1e3051;
+  --color-on-dark: #ffffff;
+  --color-on-dark-muted: #c9d4e3;
+
+  /* Fundos e superfícies */
+  --color-bg: #ffffff;
+  --color-bg-alt: #f2f5f7; /* seções intercaladas */
+  --color-surface: #ffffff; /* cards */
+  --color-border: #dbe3ea;
+  --color-overlay: rgba(30, 48, 81, 0.72);
+
+  /* Texto */
+  --color-text: #2a2a2c;
+  --color-text-muted: #566170;
+
+  /* Estados */
+  --color-focus: #00796b; /* foco visível em fundo claro */
+  --color-focus-on-dark: #ff7f6a; /* foco visível em fundo escuro */
+  --color-success: #00796b;
+  --color-danger: #b3261e;
+  --color-warning-tint: #fff1ee;
+
+  /* Tipografia */
+  --font-heading: 'Outfit', 'Inter', system-ui, sans-serif;
+  --font-body: 'Outfit', 'Inter', system-ui, sans-serif;
+
+  /* Raios */
+  --radius-brand: 1rem; /* cards */
+  --radius-control: 0.75rem; /* botões e inputs */
+  --radius-pill: 9999px; /* selos */
+
+  /* Sombras */
+  --shadow-card: 0 2px 12px rgba(30, 48, 81, 0.08);
+  --shadow-card-hover: 0 12px 32px rgba(30, 48, 81, 0.16);
+  --shadow-header: 0 2px 16px rgba(30, 48, 81, 0.1);
+
+  /* Espaçamento de seção (mobile-first) */
+  --section-space: 3.5rem;
+  --container-max: 72rem;
+  --container-gutter: 1.25rem;
+
+  /* Controles */
+  --control-height: 2.875rem;
+
+  /* Movimento */
+  --motion-duration: 0.6s;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --section-space: 6rem;
+    --container-gutter: 2rem;
+  }
+}

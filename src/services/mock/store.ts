@@ -74,6 +74,20 @@ export interface MockSettings {
   min_purchase_amount: number
   min_redemption_amount: number
   min_purchase_usage: number
+  // Contato e dados da empresa (colunas individuais, sem JSON)
+  whatsapp: string
+  telefone_atendimento: string
+  email_atendimento: string
+  cnpj: string
+  nome_programa: string
+}
+
+export interface MockContactLead {
+  id: string
+  name: string
+  phone: string
+  message: string
+  created: string
 }
 
 export interface MockPrize {
@@ -201,6 +215,11 @@ const INITIAL_SETTINGS: MockSettings = {
   min_purchase_amount: 100,
   min_purchase_usage: 500,
   min_redemption_amount: 50,
+  whatsapp: '(11) 98765-4321',
+  telefone_atendimento: '(11) 3214-5500',
+  email_atendimento: 'atendimento@gestaofidelidade.com.br',
+  cnpj: '12.345.678/0001-90',
+  nome_programa: 'Gestão de Fidelidade',
 }
 
 const INITIAL_PURCHASES: MockPurchase[] = [
@@ -616,10 +635,18 @@ export const MockStore = {
   },
 
   getSettings(): MockSettings {
-    return getStored('settings', INITIAL_SETTINGS)
+    // Mescla com os defaults para suportar dados salvos antes da inclusão de novos campos
+    return { ...INITIAL_SETTINGS, ...getStored<Partial<MockSettings>>('settings', {}) }
   },
   saveSettings(settings: MockSettings): void {
     setStored('settings', settings)
+  },
+
+  getLeads(): MockContactLead[] {
+    return getStored('leads', [])
+  },
+  saveLeads(leads: MockContactLead[]): void {
+    setStored('leads', leads)
   },
 
   getPurchases(): MockPurchase[] {
@@ -702,6 +729,7 @@ export const MockStore = {
       'banners',
       'partners',
       'redemptions',
+      'leads',
     ]
     keys.forEach((k) => localStorage.removeItem(STORAGE_PREFIX + k))
     window.dispatchEvent(new CustomEvent('fidelidade_store_change', { detail: { key: 'reset' } }))
