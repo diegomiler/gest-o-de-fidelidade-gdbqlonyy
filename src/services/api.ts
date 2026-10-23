@@ -364,6 +364,567 @@ class MockDataServiceImpl implements IDataService {
         }
         return cb
       })
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    if (userPurchaseIds.size > 0) {
+      const cashbackList = MockStore.getCashback()
+      const updatedCashback = cashbackList.map((cb) => {
+        if (userPurchaseIds.has(cb.purchase)) {
+          return {
+            ...cb,
+            client: newUser.id,
+            updated: now,
+          }
+        }
+        return cb
+      })
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+    return {
+      store_percent: s.store_percent,
+      fuel_percent: s.fuel_percent,
+      min_purchase_amount: s.min_purchase_amount,
+      min_redemption_amount: s.min_redemption_amount,
+      min_purchase_usage: s.min_purchase_usage,
+    }
+  }
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+    return {
+      store_percent: s.store_percent,
+      fuel_percent: s.fuel_percent,
+      min_purchase_amount: s.min_purchase_amount,
+      min_redemption_amount: s.min_redemption_amount,
+      min_purchase_usage: s.min_purchase_usage,
+    }
+  }
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+	    return {
+	      store_percent: s.store_percent,
+	      fuel_percent: s.fuel_percent,
+	      min_purchase_amount: s.min_purchase_amount,
+	      min_redemption_amount: s.min_redemption_amount,
+	      min_purchase_usage: s.min_purchase_usage,
+	    }
+	  }
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+=======
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	      MockStore.saveCashback(updatedCashback)
+	    }
+
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+=======
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	    if (userPurchaseIds.size > 0) {
+	      const cashbackList = MockStore.getCashback()
+	      const updatedCashback = cashbackList.map((cb) => {
+	        if (userPurchaseIds.has(cb.purchase)) {
+	          return {
+	            ...cb,
+	            client: newUser.id,
+	            updated: now,
+	          }
+	        }
+	        return cb
+	      })
+	      MockStore.saveCashback(updatedCashback)
+	    }
+
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	      MockStore.saveCashback(updatedCashback)
+	    }
+
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+=======
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	      MockStore.saveCashback(updatedCashback)
+	    }
+
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+=======
+	    return {
+	      user: newUser,
+	      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+	    }
+	  }
+
+	  async getCashbackRules(): Promise<CashbackRules> {
+=======
+	  async getCashbackRules(): Promise<CashbackRules> {
+	    const s = MockStore.getSettings()
+	    return {
+	      store_percent: s.store_percent,
+	      fuel_percent: s.fuel_percent,
+	      min_purchase_amount: s.min_purchase_amount,
+	      min_redemption_amount: s.min_redemption_amount,
+	      min_purchase_usage: s.min_purchase_usage,
+	    }
+	  }
+
+	  async updateCashbackRules(rules: CashbackRules): Promise<CashbackRules> {
+=======
+    // Também vincular os registros de cashback correspondentes a essas compras
+    const userPurchaseIds = new Set(
+      updatedPurchases
+        .filter((p) => (p.cpf || '').replace(/\D/g, '') === cleanCpfDigits)
+        .map((p) => p.id),
+    )
+    if (userPurchaseIds.size > 0) {
+      const cashbackList = MockStore.getCashback()
+      const updatedCashback = cashbackList.map((cb) => {
+        if (userPurchaseIds.has(cb.purchase)) {
+          return {
+            ...cb,
+            client: newUser.id,
+            updated: now,
+          }
+        }
+        return cb
+      })
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+    return {
+      store_percent: s.store_percent,
+      fuel_percent: s.fuel_percent,
+      min_purchase_amount: s.min_purchase_amount,
+      min_redemption_amount: s.min_redemption_amount,
+      min_purchase_usage: s.min_purchase_usage,
+    }
+  }
+
+  async updateCashbackRules(rules: CashbackRules): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    if (userPurchaseIds.size > 0) {
+      const cashbackList = MockStore.getCashback()
+      const updatedCashback = cashbackList.map((cb) => {
+        if (userPurchaseIds.has(cb.purchase)) {
+          return {
+            ...cb,
+            client: newUser.id,
+            updated: now,
+          }
+        }
+        return cb
+      })
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+    return {
+      store_percent: s.store_percent,
+      fuel_percent: s.fuel_percent,
+      min_purchase_amount: s.min_purchase_amount,
+      min_redemption_amount: s.min_redemption_amount,
+      min_purchase_usage: s.min_purchase_usage,
+    }
+  }
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+    return {
+      store_percent: s.store_percent,
+      fuel_percent: s.fuel_percent,
+      min_purchase_amount: s.min_purchase_amount,
+      min_redemption_amount: s.min_redemption_amount,
+      min_purchase_usage: s.min_purchase_usage,
+    }
+  }
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
+  async getCashbackRules(): Promise<CashbackRules> {
+=======
+  async getCashbackRules(): Promise<CashbackRules> {
+    const s = MockStore.getSettings()
+=======
+    if (userPurchaseIds.size > 0) {
+      const cashbackList = MockStore.getCashback()
+      const updatedCashback = cashbackList.map((cb) => {
+        if (userPurchaseIds.has(cb.purchase)) {
+          return {
+            ...cb,
+            client: newUser.id,
+            updated: now,
+          }
+        }
+        return cb
+      })
+      MockStore.saveCashback(updatedCashback)
+    }
+
+    return {
+      user: newUser,
+      token: `mock_jwt_token_${newUser.id}_${Date.now()}`,
+    }
+  }
+
   async getCashbackRules(): Promise<CashbackRules> {
     const s = MockStore.getSettings()
 =======
